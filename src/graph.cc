@@ -13,7 +13,8 @@
 namespace regex {
 
 struct Char {
-  static const char kMore = '*', kConcat = '.', kQuest = '?', kPlus = '+';
+  static const char kConcat = '.', kEither = '|', kMore = '*',
+      kPlus = '+', kQuest = '?';
 };
 
 bool Node::IsMatch() const {
@@ -41,6 +42,31 @@ Graph Graph::Compile(const std::string &s) {
   std::vector<Node *> nodes;
   for (char ch : s) {
     switch (ch) {
+      case Char::kConcat: {
+        Segment back(stack.top());
+        stack.pop();
+        Segment &front(stack.top());
+        std::for_each(
+            front.ends.begin(), front.ends.end(),
+            [&back = back](Node *node) {
+              node->edges.emplace_back(Edge::Empty, back.start);
+            });
+        front.ends = std::move(back.ends);
+        break;
+      }
+      case Char::kEither: {
+        Segment right(stack.top());
+        stack.pop();
+        Segment &left(stack.top());
+        auto node = new Node(
+            {Edge(Edge::Empty, left.start),
+             Edge(Edge::Empty, right.start)});
+        nodes.push_back(node);
+        left.start = node;
+        std::copy(right.ends.begin(), right.ends.end(),
+                  std::back_inserter(left.ends));
+        break;
+      }
       case Char::kMore: {
         Segment elem(stack.top());
         stack.pop();
@@ -55,22 +81,18 @@ Graph Graph::Compile(const std::string &s) {
         stack.push(std::move(seg));
         break;
       }
-      case Char::kConcat: {
-        Segment back(stack.top());
-        stack.pop();
-        Segment &front(stack.top());
-        std::for_each(
-            front.ends.begin(), front.ends.end(),
-            [&back = back](Node *node) {
-              node->edges.emplace_back(Edge::Empty, back.start);
-            });
-        front.ends = std::move(back.ends);
+      case Char::kPlus: {
         break;
       }
       case Char::kQuest: {
-        break;
-      }
-      case Char::kPlus: {
+        Segment &seg(stack.top());
+        auto end = new Node;
+        nodes.push_back(end);
+        seg.start->edges.emplace_back(Edge::Empty, end);
+        for (Node *node : seg.ends) {
+          node->edges.emplace_back(Edge::Empty, end);
+        }
+        seg.ends = {end};
         break;
       }
       default: {
