@@ -19,6 +19,8 @@ struct Edge {
   Edge(Type type, Node *node) : ch(), type(type), next(node) {}
   Edge(char ch, Node *node) : ch(ch), type(Char), next(node) {}
 
+  [[nodiscard]] bool IsEmpty() const { return Empty == type; }
+
   char ch;
   Type type;
   Node *next;
@@ -27,12 +29,9 @@ struct Edge {
 struct Node {
   enum Status { Default, Match };
 
-  Node() : ref(0), status(Default) {}
-  explicit Node(size_t ref) : ref(ref), status(Default) {}
+  Node() : status(Default) {}
   explicit Node(std::vector<Edge> edges) :
-      ref(0), status(Default), edges(std::move(edges)) {}
-  Node(size_t ref, std::vector<Edge> edges) :
-      ref(ref), status(Default), edges(std::move(edges)) {}
+      status(Default), edges(std::move(edges)) {}
 //  Node(Status status, std::vector<Edge> edges) :
 //      status(status), edges(std::move(edges)) {}
 
@@ -40,7 +39,8 @@ struct Node {
 //    return Node(Match, std::vector<Edge>());
 //  }
 
-  size_t ref;
+  [[nodiscard]] bool IsMatch() const;
+
   Status status;
   std::vector<Edge> edges;
 };
@@ -58,13 +58,17 @@ class Graph {
  public:
   static Graph Compile(const std::string &s);
 
-  explicit Graph(Segment seg) : seg_(std::move(seg)) {}
+  Graph(Segment &&seg, std::vector<Node *> &&nodes) :
+      seg_(seg), nodes_(nodes) {}
   ~Graph();
 
-  bool Match(const std::string &s) const;
+  [[nodiscard]] int Match(const std::string &s) const;
 
  private:
+  static bool EdgeMatchStrIt(const Edge &edge, std::string::const_iterator *it);
+
   Segment seg_;
+  std::vector<Node *> nodes_;
 };
 
 }  // namespace regex
