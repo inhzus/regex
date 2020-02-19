@@ -23,7 +23,7 @@ struct Edge {
   Edge(Type type, Node *node) : ch(), type(type), next(node) {}
   Edge(char ch, Node *node) : ch(ch), type(Char), next(node) {}
 
-  [[nodiscard]] bool IsEmpty() const { return Epsilon == type; }
+  [[nodiscard]] bool IsEpsilon() const { return Epsilon == type; }
 
   char ch;
   Type type;
@@ -34,8 +34,10 @@ struct Node {
   enum Status { Default, Match };
 
   Node() : status(Default) {}
-  explicit Node(std::vector<Edge> edges) :
-      status(Default), edges(std::move(edges)) {}
+//  explicit Node(const std::vector<Edge> &edges) :
+//      status(Default), edges(edges) {}
+  explicit Node(std::vector<Edge> &&edges) :
+      status(Default), edges(edges) {}
 //  Node(Status status, std::vector<Edge> edges) :
 //      status(status), edges(std::move(edges)) {}
 
@@ -68,7 +70,14 @@ class Graph {
       seg_(seg), nodes_(nodes) {}
   ~Graph();
 
+  void swap(Graph &graph) {
+    using std::swap;
+    swap(seg_, graph.seg_);
+    swap(nodes_, graph.nodes_);
+  }
+
   [[nodiscard]] int Match(const std::string &s) const;
+  void DrawMermaid() const;
 
  private:
   static bool EdgeMatchStrIt(const Edge &edge, std::string::const_iterator *it);

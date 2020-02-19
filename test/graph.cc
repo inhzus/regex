@@ -17,13 +17,15 @@ TEST_CASE("graph match concat", "[graph]") {
 }
 
 TEST_CASE("graph match 0 or more", "[graph]") {
-  auto graph = regex::Graph::Compile("a*");
-
-  REQUIRE(0 == graph.Match(""));
-  REQUIRE(0 == graph.Match("b"));
+  auto graph = regex::Graph::Compile("aa*.");
+  REQUIRE(-1 == graph.Match(""));
+  REQUIRE(-1 == graph.Match("b"));
   REQUIRE(1 == graph.Match("a"));
   REQUIRE(2 == graph.Match("aa"));
   REQUIRE(2 == graph.Match("aab"));
+
+  graph = regex::Graph::Compile("ab|*a.");
+  REQUIRE(4 == graph.Match("babac"));
 }
 
 TEST_CASE("graph match either one", "[graph]") {
@@ -37,4 +39,16 @@ TEST_CASE("graph match the element or not", "[graph]") {
   REQUIRE(2 == graph.Match("ab"));
   REQUIRE(1 == graph.Match("b"));
   REQUIRE(-1 == graph.Match("a"));
+}
+
+TEST_CASE("graph greedy or lazy", "[graph]") {
+  auto graph = regex::Graph::Compile("aa*?.");
+  REQUIRE(1 == graph.Match("a"));
+  REQUIRE(1 == graph.Match("aa"));
+
+  graph = regex::Graph::Compile("ab|*?a.");
+  REQUIRE(2 == graph.Match("babac"));
+
+  graph = regex::Graph::Compile("aa??.");
+  REQUIRE(1 == graph.Match("aa"));
 }
