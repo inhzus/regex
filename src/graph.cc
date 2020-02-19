@@ -43,81 +43,86 @@ Graph Graph::Compile(const std::string &s) {
   for (char ch : s) {
     switch (ch) {
       case Char::kConcat: {
+        //      | left | right |
+        // start=0==>0-->0==>end=0
         Segment back(stack.top());
         stack.pop();
         Segment &front(stack.top());
-        std::for_each(
-            front.ends.begin(), front.ends.end(),
-            [&back = back](Node *node) {
-              node->edges.emplace_back(Edge::Empty, back.start);
-            });
-        front.ends = std::move(back.ends);
+        front.end->edges.push_back(Edge::EpsilonEdge(back.start));
+        front.end = back.end;
         break;
       }
       case Char::kEither: {
+        //       |   left    |
+        //       |-->0==>0-->|
+        // start=0       end=0
+        //       |-->0==>0-->|
+        //       |   right   |
         Segment right(stack.top());
         stack.pop();
-        Segment &left(stack.top());
-        auto node = new Node(
-            {Edge(Edge::Empty, left.start),
-             Edge(Edge::Empty, right.start)});
-        nodes.push_back(node);
-        left.start = node;
-        std::copy(right.ends.begin(), right.ends.end(),
-                  std::back_inserter(left.ends));
+        Segment left(stack.top());
+        stack.pop();
+        auto start = new Node(
+            {Edge::EpsilonEdge(left.start),
+             Edge::EpsilonEdge(right.start)});
+        nodes.push_back(start);
+        auto end = new Node;
+        nodes.push_back(end);
+        left.end->edges.push_back(Edge::EpsilonEdge(end));
+        right.end->edges.push_back(Edge::EpsilonEdge(end));
+        stack.push(Segment(start, end));
         break;
       }
       case Char::kMore: {
+        //       |-->0==>0-->|
+        // start=0<--.<--.<--|   |-->end=0
+        //       |-->.-->.-->.-->|
         Segment elem(stack.top());
         stack.pop();
-        auto start = new Node({Edge(Edge::Empty, elem.start)});
+        auto end = new Node;
+        nodes.push_back(end);
+        auto start = new Node(
+            {Edge::EpsilonEdge(elem.start), Edge::EpsilonEdge(end)});
         nodes.push_back(start);
-        Segment seg(start, start);
-        std::for_each(
-            elem.ends.begin(), elem.ends.end(),
-            [&seg = seg](Node *node) {
-              node->edges.emplace_back(Edge::Empty, seg.start);
-            });
-        stack.push(std::move(seg));
+        elem.end->edges.push_back(Edge::EpsilonEdge(start));
+        stack.push(Segment(start, end));
         break;
       }
       case Char::kPlus: {
         break;
       }
       case Char::kQuest: {
-        Segment &seg(stack.top());
+        //       |   elem    |
+        //       |-->0==>0-->|
+        // start=0       end=0
+        //       |-->.-->.-->|
+        Segment elem(stack.top());
+        stack.pop();
         auto end = new Node;
         nodes.push_back(end);
-        seg.start->edges.emplace_back(Edge::Empty, end);
-        for (Node *node : seg.ends) {
-          node->edges.emplace_back(Edge::Empty, end);
-        }
-        seg.ends = {end};
+        auto start = new Node(
+            {Edge::EpsilonEdge(elem.start), Edge::EpsilonEdge(end)});
+        nodes.push_back(start);
+        elem.end->edges.push_back(Edge::EpsilonEdge(end));
+        stack.push(Segment(start, end));
         break;
       }
       default: {
-        auto node = new Node();
-        nodes.push_back(node);
-        auto next = new Node;
-        nodes.push_back(next);
-        node->edges.emplace_back(ch, next);
-        Segment segment(node, next);
-        stack.push(std::move(segment));
+        // start=0-->ch=0-->end=0
+        auto start = new Node;
+        nodes.push_back(start);
+        auto end = new Node;
+        nodes.push_back(end);
+        start->edges.emplace_back(ch, end);
+        stack.push(Segment(start, end));
         break;
       }
     }
   }
   assert(stack.size() == 1);
-  auto match = new Node;
-  match->status = Node::Match;
-  nodes.push_back(match);
   Segment &seg(stack.top());
-  for (auto &node : seg.ends) {
-    node->edges.emplace_back(Edge::Empty, match);
-  }
-//  match->ref += seg.ends.size();
-  seg.ends.clear();
-  return Graph(std::move(seg), std::move(nodes));
+  seg.end->status = Node::Match;
+  return Graph(seg, std::move(nodes));
 }
 
 Graph::~Graph() {
@@ -170,7 +175,7 @@ bool Graph::EdgeMatchStrIt(const Edge &edge, std::string::const_iterator *it) {
   switch (edge.type) {
     case Edge::Any:++*it;
       FallThrough;
-    case Edge::Empty:return true;
+    case Edge::Epsilon:return true;
     case Edge::Char: {
       if (**it == edge.ch) {
         ++*it;

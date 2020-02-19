@@ -14,12 +14,16 @@ namespace regex {
 struct Node;
 
 struct Edge {
-  enum Type { Char, Any, Empty };
+  enum Type { Char, Any, Epsilon };
+
+  static Edge EpsilonEdge(Node *node) {
+    return Edge(Epsilon, node);
+  }
 
   Edge(Type type, Node *node) : ch(), type(type), next(node) {}
   Edge(char ch, Node *node) : ch(ch), type(Char), next(node) {}
 
-  [[nodiscard]] bool IsEmpty() const { return Empty == type; }
+  [[nodiscard]] bool IsEmpty() const { return Epsilon == type; }
 
   char ch;
   Type type;
@@ -46,19 +50,18 @@ struct Node {
 };
 
 struct Segment {
-  explicit Segment(Node *start) : start(start) {}
   Segment(Node *start, Node *end) :
-      start(start), ends({end}) {}
+      start(start), end(end) {}
 
   Node *start;
-  std::vector<Node *> ends;
+  Node *end;
 };
 
 class Graph {
  public:
   static Graph Compile(const std::string &s);
 
-  Graph(Segment &&seg, std::vector<Node *> &&nodes) :
+  Graph(const Segment &seg, std::vector<Node *> &&nodes) :
       seg_(seg), nodes_(nodes) {}
   ~Graph();
 
