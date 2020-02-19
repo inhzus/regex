@@ -60,7 +60,10 @@ struct Segment {
 class Graph {
  public:
   static Graph Compile(const std::string &s);
-
+  Graph(const Graph &) = delete;
+  Graph operator=(const Graph &) = delete;
+  Graph(Graph &&) = default;
+  Graph &operator=(Graph &&) = default;
   Graph(const Segment &seg, std::vector<Node *> &&nodes) :
       seg_(seg), nodes_(nodes) {}
   ~Graph();
