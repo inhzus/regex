@@ -13,11 +13,6 @@
 
 namespace regex {
 
-struct Char {
-  static const char kConcat = '.', kEither = '|', kMore = '*',
-      kPlus = '+', kQuest = '?';
-};
-
 bool Node::IsMatch() const {
   if (Match == status) return true;
   std::stack<const Node *, std::vector<const Node *>> stack;

@@ -1,1 +1,1 @@
-add_library(regex graph.cc)
+add_library(regex graph.cc exp.cc)

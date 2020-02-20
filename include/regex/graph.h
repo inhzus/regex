@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+#include "regex/exp.h"
+
 namespace regex {
 
 struct Node;
