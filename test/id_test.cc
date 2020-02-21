@@ -2,13 +2,13 @@
 // Copyright [2020] <inhzus>
 //
 
-#include "regex/exp.h"
+#include "regex/id.h"
 
 #include <catch2/catch.hpp>
 
 using regex::Id;
 
-std::string ExpToString(const std::vector<Id> &vector) {
+std::string IdsToStr(const std::vector<Id> &vector) {
   std::string s;
   for (const auto &id : vector) {
     switch (static_cast<int>(id.sym)) {
@@ -40,7 +40,7 @@ std::string ExpToString(const std::vector<Id> &vector) {
 }
 
 std::string InfixToPostfix(const std::string &s) {
-  return ExpToString(regex::Exp(s).Post());
+  return IdsToStr(regex::StrToPostfixIds(s));
 }
 
 TEST_CASE("exp", "[exp]") {

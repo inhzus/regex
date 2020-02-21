@@ -2,7 +2,7 @@
 // Copyright [2020] <inhzus>
 //
 
-#include "regex/exp.h"
+#include "regex/id.h"
 
 #include <cassert>
 
@@ -17,8 +17,8 @@ namespace regex {
 // 6. Concatenation
 // 7. Anchoring ^$
 // 8. Alternation |
-size_t Id::Sym::Order() const {
-  switch (inner_) {
+size_t Id::Sym::Order(Id::Sym::_Inner inner) {
+  switch (inner) {
 //    case Paren:
 //    case ParenEnd:return 4;
     case More:
@@ -27,16 +27,14 @@ size_t Id::Sym::Order() const {
     case LazyQuest:return 5;
     case Concat:return 6;
     case Either:return 8;
-    default:assert(false);
-      break;
+    default:return 0;
   }
-  return 0;
 }
 
 #define FALL_THROUGH do {} while (0)
-std::vector<Id> Exp::Post() const {
+std::vector<Id> StrToPostfixIds(const std::string &s) {
   std::vector<Id> vector;
-  std::string::const_iterator it(string_.begin());
+  std::string::const_iterator it(s.begin());
   std::stack<Id, std::vector<Id>> stack;
   std::stack<bool, std::vector<bool>> concat_stack;
   concat_stack.push(false);
@@ -52,7 +50,7 @@ std::vector<Id> Exp::Post() const {
     while (!stack.empty()) {
       Id top = stack.top();
       if (top.sym == Id::Sym::Paren) break;
-      if (top.sym.Order() <= id.sym.Order()) {
+      if (top.sym.order() <= id.sym.order()) {
         stack.pop();
         vector.push_back(top);
       } else {
@@ -61,8 +59,7 @@ std::vector<Id> Exp::Post() const {
     }
     stack.push(id);
   };
-  for (;; ++it) {
-    if (string_.end() == it) break;
+  for (; s.end() != it; ++it) {
     char op = *it;
     bool greedy = true;
     switch (op) {
@@ -70,7 +67,7 @@ std::vector<Id> Exp::Post() const {
       case Char::kMore:
       case Char::kQuest: {
         auto next(it + 1);
-        if (next != string_.end() && *next == Char::kQuest) {
+        if (next != s.end() && *next == Char::kQuest) {
           it = next;
           greedy = false;
         }
@@ -87,11 +84,11 @@ std::vector<Id> Exp::Post() const {
         push_operator(Id(Id::Sym::Either));
         break;
       }
-      case Char::kLeftParen: {
+      case Char::kParen: {
         stack.push(Id(Id::Sym::Paren));
         break;
       }
-      case Char::kRightParen: {
+      case Char::kParenEnd: {
         while (true) {
           assert(!stack.empty());
           Id id = stack.top();
@@ -134,11 +131,11 @@ std::vector<Id> Exp::Post() const {
         concat_stack.top() = false;
         break;
       }
-      case Char::kLeftParen: {
+      case Char::kParen: {
         concat_stack.push(false);
         break;
       }
-      case Char::kRightParen: {
+      case Char::kParenEnd: {
         concat_stack.pop();
         if (concat_stack.top()) {
           push_operator(Id(Id::Sym::Concat));

@@ -1,8 +1,8 @@
 //
 // Copyright [2020] <inhzus>
 //
-#ifndef REGEX_EXP_H_
-#define REGEX_EXP_H_
+#ifndef REGEX_ID_H_
+#define REGEX_ID_H_
 
 #include <stack>
 #include <string>
@@ -13,7 +13,7 @@ namespace regex {
 
 struct Char {
   static const char kAny = '.', kBackslash = '\\', kConcat = '.', kEither = '|',
-      kMore = '*', kLeftParen = '(', kRightParen = ')', kPlus = '+',
+      kMore = '*', kParen = '(', kParenEnd = ')', kPlus = '+',
       kQuest = '?';
 };
 
@@ -31,7 +31,7 @@ struct Id {
       Plus, LazyPlus,  // "+", "+?"
       Quest, LazyQuest  // "?", "??"
     };
-    explicit Sym(Sym::_Inner inner) : inner_(inner) {}
+    explicit Sym(Sym::_Inner inner) : inner_(inner), order_(Order(inner)) {}
     bool operator==(Sym::_Inner inner) { return inner == inner_; }
     bool operator!=(Sym::_Inner inner) { return inner != inner_; }
     explicit operator int() const {
@@ -41,35 +41,25 @@ struct Id {
     [[nodiscard]] bool IsOperand() const {
       return inner_ == Any || inner_ == Char;
     }
-    [[nodiscard]] bool IsOperator() const {
-      return !IsOperand();
-    }
-    [[nodiscard]] size_t Order() const;
+    [[nodiscard]] bool IsOperator() const { return !IsOperand(); }
+    [[nodiscard]] size_t order() const { return order_; }
 
    private:
+    static size_t Order(_Inner inner);
+
     _Inner inner_;
-  } sym;
-  char ch;
+    size_t order_;
+  };
 
   explicit Id(Sym::_Inner sym) : sym(sym), ch() {}
   explicit Id(char ch) : sym(Sym::Char), ch(ch) {}
+
+  Sym sym;
+  char ch;
 };
 
-class Exp {
- public:
-  explicit Exp(const std::string &s) :  // NOLINT
-      string_(s) {}
-  explicit Exp(std::string &&s) :
-      string_(s) {}
-  Exp(const Exp &) = delete;
-  Exp operator=(const Exp &) = delete;
-
-  [[nodiscard]] std::vector<Id> Post() const;
-
- private:
-  const std::string string_;
-};
+std::vector<Id> StrToPostfixIds(const std::string &s);
 
 }  // namespace regex
 
-#endif  // REGEX_EXP_H_
+#endif  // REGEX_ID_H_
