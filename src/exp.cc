@@ -8,7 +8,7 @@
 
 namespace regex {
 
-// the order of precedence for operators:
+// the order of precedence for operators (from high to low):
 // 1. collation-related bracket symbols [==], [::], [..]
 // 2. Escape characters "\"
 // 3. Character set (bracket expression) []
@@ -19,6 +19,8 @@ namespace regex {
 // 8. Alternation |
 size_t Id::Sym::Order() const {
   switch (inner_) {
+//    case Paren:
+//    case ParenEnd:return 4;
     case More:
     case LazyMore:
     case Quest:
@@ -35,23 +37,35 @@ size_t Id::Sym::Order() const {
 std::vector<Id> Exp::Post() const {
   std::vector<Id> vector;
   std::string::const_iterator it(string_.begin());
-  std::stack<Id> stack;
-  Id last_id(Id::Sym::Begin);  // for concatenate characters
-  auto pop_stack = [&vector = vector, &stack = stack, &id = last_id]() {
+  std::stack<Id, std::vector<Id>> stack;
+  std::stack<bool, std::vector<bool>> concat_stack;
+  concat_stack.push(false);
+  auto push_operator = [&vector = vector, &stack = stack](Id id) {
+    switch (static_cast<int>(id.sym)) {
+      // directly output the unary operator
+      case Id::Sym::More:
+      case Id::Sym::LazyMore:
+      case Id::Sym::Quest:
+      case Id::Sym::LazyQuest:vector.push_back(id);
+        return;
+    }
     while (!stack.empty()) {
       Id top = stack.top();
-      if (top.sym == Id::Sym::LeftParen) break;
-      if (top.sym.Order() >= id.sym.Order()) {
+      if (top.sym == Id::Sym::Paren) break;
+      if (top.sym.Order() <= id.sym.Order()) {
         stack.pop();
         vector.push_back(top);
+      } else {
+        break;
       }
     }
+    stack.push(id);
   };
   for (;; ++it) {
     if (string_.end() == it) break;
-    char ch = *it;
+    char op = *it;
     bool greedy = true;
-    switch (ch) {
+    switch (op) {
       // set greedy or lazy mode
       case Char::kMore:
       case Char::kQuest: {
@@ -64,64 +78,85 @@ std::vector<Id> Exp::Post() const {
       }
       default: break;
     }
-    switch (ch) {
+    switch (op) {
       case Char::kAny: {
-        last_id = Id(Id::Sym::Any);
-        vector.push_back(last_id);
+        vector.emplace_back(Id::Sym::Any);
         break;
       }
       case Char::kEither: {
-        last_id = Id(Id::Sym::Either);
-        pop_stack();
+        push_operator(Id(Id::Sym::Either));
         break;
       }
       case Char::kLeftParen: {
-        last_id = Id(Id::Sym::LeftParen);
-        stack.push(last_id);
+        stack.push(Id(Id::Sym::Paren));
         break;
       }
       case Char::kRightParen: {
-        last_id = Id(Id::Sym::RightParen);
         while (true) {
           assert(!stack.empty());
           Id id = stack.top();
           stack.pop();
-          if (id.sym == Id::Sym::LeftParen) {
+          vector.push_back(id);
+          if (id.sym == Id::Sym::Paren) {
             break;
           }
-          vector.push_back(id);
         }
         break;
       }
       case Char::kMore: {
         if (greedy) {
-          last_id = Id(Id::Sym::More);
+          push_operator(Id(Id::Sym::More));
         } else {
-          last_id = Id(Id::Sym::LazyMore);
+          push_operator(Id(Id::Sym::LazyMore));
         }
-        pop_stack();
         break;
       }
       case Char::kQuest : {
         if (greedy) {
-          last_id = Id(Id::Sym::Quest);
+          push_operator(Id(Id::Sym::Quest));
         } else {
-          last_id = Id(Id::Sym::LazyQuest);
+          push_operator(Id(Id::Sym::LazyQuest));
         }
-        pop_stack();
         break;
       }
       case Char::kBackslash: {
         // attention to order of precedence for regex operators
-        ch = *++it;
+        ++it;
         FALL_THROUGH;
       }
       default: {
-        vector.emplace_back(ch);
-        if (last_id.sym.IsOperand()) {
-          stack.push(Id(Id::Sym::Concat));
+        vector.emplace_back(*it);
+        break;
+      }
+    }
+    switch (op) {
+      case Char::kEither: {
+        concat_stack.top() = false;
+        break;
+      }
+      case Char::kLeftParen: {
+        concat_stack.push(false);
+        break;
+      }
+      case Char::kRightParen: {
+        concat_stack.pop();
+        if (concat_stack.top()) {
+          push_operator(Id(Id::Sym::Concat));
         }
-        last_id = Id(ch);
+        concat_stack.top() = true;
+        break;
+      }
+      case Char::kMore:
+      case Char::kQuest: {
+        break;
+      }
+      case Char::kAny:
+      case Char::kBackslash:
+      default: {
+        if (concat_stack.top()) {
+          push_operator(Id(Id::Sym::Concat));
+        }
+        concat_stack.top() = true;
         break;
       }
     }

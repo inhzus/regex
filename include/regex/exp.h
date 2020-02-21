@@ -23,12 +23,11 @@ struct Id {
    public:
     enum _Inner {
       Any,  // "."
-      Begin,  // at the begin
       Char,  // a character
       Concat,  // concatenate characters
       Either,  // "|"
       More, LazyMore,  // "*", "*?"
-      LeftParen, RightParen,  // "(", ")"
+      Paren, ParenEnd,  // "(", ")"
       Plus, LazyPlus,  // "+", "+?"
       Quest, LazyQuest  // "?", "??"
     };
@@ -36,16 +35,15 @@ struct Id {
     bool operator==(Sym::_Inner inner) { return inner == inner_; }
     bool operator!=(Sym::_Inner inner) { return inner != inner_; }
     explicit operator int() const {
-      return int(inner_);
+      return static_cast<int>(inner_);
     }
 
     [[nodiscard]] bool IsOperand() const {
       return inner_ == Any || inner_ == Char;
     }
     [[nodiscard]] bool IsOperator() const {
-      return !IsOperand() && !IsBegin();
+      return !IsOperand();
     }
-    [[nodiscard]] bool IsBegin() const { return inner_ == Begin; }
     [[nodiscard]] size_t Order() const;
 
    private:
