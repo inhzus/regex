@@ -18,6 +18,9 @@ struct Node;
 struct Edge {
   enum Type { Char, Any, Epsilon };
 
+  static Edge AnyEdge(Node *node) {
+    return Edge(Any, node);
+  }
   static Edge EpsilonEdge(Node *node) {
     return Edge(Epsilon, node);
   }
@@ -63,7 +66,10 @@ struct Segment {
 
 class Graph {
  public:
+  static Graph CompilePostfix(const std::string &s);
   static Graph Compile(const std::string &s);
+  static Graph Compile(std::vector<Id> &&ids);
+
   Graph(const Graph &) = delete;
   Graph operator=(const Graph &) = delete;
   Graph(Graph &&) = default;

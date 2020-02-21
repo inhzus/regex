@@ -34,7 +34,7 @@ bool Node::IsMatch() const {
 }
 
 #define FallThrough do {} while (0)
-Graph Graph::Compile(const std::string &s) {
+Graph Graph::CompilePostfix(const std::string &s) {
   std::stack<Segment> stack;
   std::vector<Node *> nodes;
   for (auto sit = s.begin(); sit != s.end(); ++sit) {
@@ -143,6 +143,124 @@ Graph Graph::Compile(const std::string &s) {
         nodes.push_back(end);
         start->edges.emplace_back(ch, end);
         stack.push(Segment(start, end));
+        break;
+      }
+    }
+  }
+  assert(stack.size() == 1);
+  Segment &seg(stack.top());
+  seg.end->status = Node::Match;
+  return Graph(seg, std::move(nodes));
+}
+Graph Graph::Compile(const std::string &s) {
+  return Compile(StrToPostfixIds(s));
+}
+Graph Graph::Compile(std::vector<Id> &&ids) {
+  std::stack<Segment> stack;
+  std::vector<Node *> nodes;
+
+  for (auto id : ids) {
+    switch (static_cast<int>(id.sym)) {
+      case Id::Sym::Any: {
+        // stack=0-->any-->end=0
+        auto start = new Node;
+        nodes.push_back(start);
+        auto end = new Node;
+        nodes.push_back(end);
+        start->edges.push_back(Edge::AnyEdge(end));
+        stack.push(Segment(start, end));
+        break;
+      }
+      case Id::Sym::Char: {
+        // start=0-->ch=0-->end=0
+        auto start = new Node;
+        nodes.push_back(start);
+        auto end = new Node;
+        nodes.push_back(end);
+        start->edges.emplace_back(id.ch, end);
+        stack.push(Segment(start, end));
+        break;
+      }
+      case Id::Sym::Concat: {
+        //      | left | right |
+        // start=0==>0-->0==>end=0
+        Segment back(stack.top());
+        stack.pop();
+        Segment &front(stack.top());
+        front.end->edges.push_back(Edge::EpsilonEdge(back.start));
+        front.end = back.end;
+        break;
+      }
+      case Id::Sym::Either: {
+        //       |   left    |
+        //       |-->0==>0-->|
+        // start=0       end=0
+        //       |-->0==>0-->|
+        //       |   right   |
+        Segment right(stack.top());
+        stack.pop();
+        Segment left(stack.top());
+        stack.pop();
+        auto start = new Node(
+            {Edge::EpsilonEdge(left.start),
+             Edge::EpsilonEdge(right.start)});
+        nodes.push_back(start);
+        auto end = new Node;
+        nodes.push_back(end);
+        left.end->edges.push_back(Edge::EpsilonEdge(end));
+        right.end->edges.push_back(Edge::EpsilonEdge(end));
+        stack.push(Segment(start, end));
+        break;
+      }
+      case Id::Sym::More:
+      case Id::Sym::LazyMore: {
+        //       |-->0==>0-->|
+        // start=0<--.<--.<--|   |-->end=0
+        //       |-->.-->.-->.-->|
+        Segment elem(stack.top());
+        stack.pop();
+        auto end = new Node;
+        nodes.push_back(end);
+        std::vector<Edge> edges;
+        if (id.sym == Id::Sym::More) {
+          edges = {Edge::EpsilonEdge(elem.start),
+                   Edge::EpsilonEdge(end)};
+        } else {
+          edges = {Edge::EpsilonEdge(end),
+                   Edge::EpsilonEdge(elem.start)};
+        }
+        auto start = new Node(std::move(edges));
+        nodes.push_back(start);
+        elem.end->edges.push_back(Edge::EpsilonEdge(start));
+        stack.push(Segment(start, end));
+        break;
+      }
+      case Id::Sym::Quest:
+      case Id::Sym::LazyQuest: {
+        //       |   elem    |
+        //       |-->0==>0-->|
+        // start=0       end=0
+        //       |-->.-->.-->|
+        Segment elem(stack.top());
+        stack.pop();
+        auto end = new Node;
+        nodes.push_back(end);
+        std::vector<Edge> edges;
+        if (id.sym == Id::Sym::Quest) {
+          edges = {Edge::EpsilonEdge(elem.start),
+                   Edge::EpsilonEdge(end)};
+        } else {
+          edges = {Edge::EpsilonEdge(end),
+                   Edge::EpsilonEdge(elem.start)};
+        }
+        auto start = new Node(std::move(edges));
+        nodes.push_back(start);
+        elem.end->edges.push_back(Edge::EpsilonEdge(end));
+        stack.push(Segment(start, end));
+        break;
+      }
+      default: {
+//        assert(false);
         break;
       }
     }
