@@ -4,6 +4,7 @@
 #ifndef REGEX_GRAPH_H_
 #define REGEX_GRAPH_H_
 
+#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>
@@ -16,23 +17,61 @@ namespace regex {
 struct Node;
 
 struct Edge {
-  enum Type { Char, Any, Epsilon };
+  enum Type { Any, Char, Epsilon, Store, StoreEnd, Named, NamedEnd };
 
-  static Edge AnyEdge(Node *node) {
-    return Edge(Any, node);
+  static Edge CharEdge(char ch, Node *node) {
+    return Edge(Char, node, ch);
   }
-  static Edge EpsilonEdge(Node *node) {
-    return Edge(Epsilon, node);
+  static Edge AnyEdge(Node *next) {
+    return Edge(Any, next);
   }
-
-  Edge(Type type, Node *node) : ch(), type(type), next(node) {}
-  Edge(char ch, Node *node) : ch(ch), type(Char), next(node) {}
+  static Edge EpsilonEdge(Node *next) {
+    return Edge(Epsilon, next);
+  }
+  static Edge StoreEdge(int idx, Node *next) {
+    return Edge(Store, next, idx);
+  }
+  static Edge StoreEndEdge(int idx, Node *next) {
+    return Edge(StoreEnd, next, idx);
+  }
+  static Edge NamedEdge(int idx, const std::string &s, Node *next) {
+    return Edge(Named, next, idx, s);
+  }
+  static Edge NamedEndEdge(int idx, const std::string &s, Node *next) {
+    return Edge(NamedEnd, next, idx, s);
+  }
+  ~Edge() {
+    if (type == Named || type == NamedEnd) {
+      delete named.name;
+    }
+  }
 
   [[nodiscard]] bool IsEpsilon() const { return Epsilon == type; }
 
-  char ch;
   Type type;
   Node *next;
+  union {
+    struct {
+      char val;
+    } ch;
+    struct {
+      int idx;
+    } store, store_end;
+    struct {
+      int idx;
+      char *name;
+    } named, named_end;
+  };
+
+ private:
+  Edge(Type type, Node *next) : type(type), next(next), ch({0}) {}
+  Edge(Type type, Node *next, char ch) : type(type), next(next), ch({ch}) {}
+  Edge(Type type, Node *next, int idx) : type(type), next(next), store({idx}) {}
+  Edge(Type type, Node *next, int idx, const std::string &s) :
+      type(type), next(next), named({idx, nullptr}) {
+    named.name = new char[s.size() + 1];
+    snprintf(named.name, s.size() + 1, "%s", s.c_str());
+  }
 };
 
 struct Node {
@@ -85,6 +124,8 @@ class Graph {
   }
 
   [[nodiscard]] int Match(const std::string &s) const;
+  [[nodiscard]] int
+  Match(const std::string &s, std::vector<std::string> *groups) const;
   void DrawMermaid() const;
 
  private:

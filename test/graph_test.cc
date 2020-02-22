@@ -117,3 +117,16 @@ TEST_CASE("graph match any and backslash", "[graph]") {
   REQUIRE(3 == graph.Match("(.)"));
   REQUIRE(2 == graph.Match("()"));
 }
+
+TEST_CASE("graph match function that supports break backtrack", "[graph]") {
+  auto graph = CompileInfix("ab", "ab.");
+  REQUIRE(2 == graph.Match("ab", nullptr));
+
+  graph = CompileInfix("aa??", "aa??.");
+  REQUIRE(1 == graph.Match("aa", nullptr));
+  
+  graph = CompileInfix("aa*|b(cd*(e|fg))?h|i", "aa*.bcd*efg.|(..(?h..|i|");
+  REQUIRE(8 == graph.Match("bcdddfgh", nullptr));
+  REQUIRE(1 == graph.Match("i", nullptr));
+  REQUIRE(2 == graph.Match("bh", nullptr));
+}
