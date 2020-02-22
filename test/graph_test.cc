@@ -4,7 +4,6 @@
 
 #include "regex/graph.h"
 
-#define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
 #include "test/utils.h"
@@ -103,4 +102,18 @@ TEST_CASE("graph of infix order", "[graph]") {
   REQUIRE(8 == graph.Match("bcdddfgh"));
   REQUIRE(1 == graph.Match("i"));
   REQUIRE(2 == graph.Match("bh"));
+}
+
+TEST_CASE("graph match any and backslash", "[graph]") {
+  auto graph = CompileInfix(".*a", "_*a.");
+  REQUIRE(15 == graph.Match("abcdefghijklmna"));
+  graph = CompileInfix("a.?b", "a_?b..");
+  REQUIRE(3 == graph.Match("acb"));
+  REQUIRE(3 == graph.Match("abb"));
+  graph = CompileInfix("a.??b", "a_??b..");
+  REQUIRE(2 == graph.Match("abb"));
+
+  graph = CompileInfix(R"(\(\.?\))", "(.?)..");
+  REQUIRE(3 == graph.Match("(.)"));
+  REQUIRE(2 == graph.Match("()"));
 }

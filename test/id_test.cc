@@ -6,7 +6,7 @@
 
 #include <catch2/catch.hpp>
 
-#include "./utils.h"
+#include "test/utils.h"
 
 std::string InfixToPostfix(const std::string &s) {
   return IdsToStr(regex::StrToPostfixIds(s));
