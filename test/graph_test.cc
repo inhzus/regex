@@ -143,3 +143,16 @@ TEST_CASE("graph match groups", "[graph]") {
   REQUIRE("cdddfg" == groups[1]);
   REQUIRE("fg" == groups[2]);
 }
+
+TEST_CASE("graph match non-captured groups", "[graph]") {
+  auto graph = CompileInfix(
+      "aa*|b(?:cd*(?:e|fg))?h|i", "aa*.bcd*efg.|..?h..|i|");
+
+  REQUIRE(8 == graph.Match("bcdddfgh"));
+  REQUIRE(1 == graph.Match("i"));
+  REQUIRE(2 == graph.Match("bh"));
+  std::vector<std::string> groups;
+  REQUIRE(graph.Match("bcdddfgh", &groups));
+  REQUIRE(1 == groups.size());
+  REQUIRE("bcdddfgh" == groups[0]);
+}

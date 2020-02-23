@@ -13,8 +13,8 @@ namespace regex {
 
 struct Char {
   static const char kAny = '.', kBackslash = '\\', kConcat = '.', kEither = '|',
-      kMore = '*', kParen = '(', kParenEnd = ')', kPlus = '+',
-      kQuest = '?';
+      kMore = '*', kParen = '(', kParenEnd = ')', kParenFLag = '?', kPlus = '+',
+      kQuest = '?', kUnParenFlag = ':';
 };
 
 struct Id {
@@ -28,6 +28,7 @@ struct Id {
       Either,  // "|"
       More, LazyMore,  // "*", "*?"
       Paren, ParenEnd,  // "(", ")"
+      UnParen,  // "(?:"
       Plus, LazyPlus,  // "+", "+?"
       Quest, LazyQuest  // "?", "??"
     };
@@ -42,6 +43,9 @@ struct Id {
       return inner_ == Any || inner_ == Char;
     }
     [[nodiscard]] bool IsOperator() const { return !IsOperand(); }
+    [[nodiscard]] bool IsParen() const {
+      return inner_ == Paren || inner_ == UnParen;
+    }
     [[nodiscard]] size_t order() const { return order_; }
 
    private:

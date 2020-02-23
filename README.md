@@ -7,7 +7,7 @@
 - [x] greedy & reluctant: "\*?", "??"
 - [x] infix expression
 - [x] verify: ".", "\\"
-- [ ] grouping: (...), (?:...)
+- [x] grouping: (...), (?:...)
 - [ ] (negative) look-ahead assertions: (?=...), (?!...)
 - [ ] token to mark greedy / reluctant / possessive
 - [ ] possessive: "\*+", "?+"

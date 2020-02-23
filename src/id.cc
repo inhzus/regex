@@ -50,7 +50,7 @@ std::vector<Id> StrToPostfixIds(const std::string &s) {
     }
     while (!stack.empty()) {
       Id top = stack.top();
-      if (top.sym == Id::Sym::Paren) break;
+      if (top.sym.IsParen()) break;
       if (top.sym.order() <= id.sym.order()) {
         stack.pop();
         vector.push_back(top);
@@ -86,9 +86,23 @@ std::vector<Id> StrToPostfixIds(const std::string &s) {
         break;
       }
       case Char::kParen: {
-        Id id(Id::Sym::Paren);
-        id.store.idx = store_idx++;
-        stack.push(id);
+        auto quest(it + 1);
+        if (quest == s.end() || *quest != Char::kParenFLag) {
+          Id id(Id::Sym::Paren);
+          id.store.idx = store_idx++;
+          stack.push(id);
+          break;
+        }
+        auto flag(quest + 1);
+        if (flag == s.end()) break;  // grammar error
+        switch (*flag) {
+          case Char::kUnParenFlag: {
+            stack.push(Id(Id::Sym::UnParen));
+            break;
+          }
+          default: break;
+        }
+        it = flag;
         break;
       }
       case Char::kParenEnd: {
@@ -97,7 +111,7 @@ std::vector<Id> StrToPostfixIds(const std::string &s) {
           Id id = stack.top();
           stack.pop();
           vector.push_back(id);
-          if (id.sym == Id::Sym::Paren) {
+          if (id.sym.IsParen()) {
             break;
           }
         }

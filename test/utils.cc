@@ -26,6 +26,7 @@ std::string IdsToStr(const std::vector<Id> &vector) {
         break;
       case Id::Sym::Paren: s.push_back('(');
         break;
+      case Id::Sym::UnParen: break;
       case Id::Sym::ParenEnd: s.push_back(')');
         break;
       case Id::Sym::Quest: s.push_back('?');

@@ -248,6 +248,9 @@ Graph Graph::Compile(std::vector<Id> &&ids) {
         stack.push(Segment(start, end));
         break;
       }
+      case Id::Sym::UnParen: {
+        break;
+      }
       case Id::Sym::Quest:
       case Id::Sym::LazyQuest: {
         //       |   elem    |
