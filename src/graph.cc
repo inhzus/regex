@@ -150,7 +150,7 @@ Graph Graph::CompilePostfix(const std::string &s) {
   assert(stack.size() == 1);
   Segment &seg(stack.top());
   seg.end->status = Node::Match;
-  return Graph(seg, std::move(nodes));
+  return Graph(seg, std::move(nodes), 1);
 }
 Graph Graph::Compile(const std::string &s) {
   return Compile(StrToPostfixIds(s));
@@ -158,7 +158,7 @@ Graph Graph::Compile(const std::string &s) {
 Graph Graph::Compile(std::vector<Id> &&ids) {
   std::stack<Segment> stack;
   std::vector<Node *> nodes;  // for memory management
-  int group_idx = 1;
+  size_t store_cnt = 1;
 
   for (auto id : ids) {
     switch (static_cast<int>(id.sym)) {
@@ -241,10 +241,10 @@ Graph Graph::Compile(std::vector<Id> &&ids) {
         stack.pop();
         auto end = new Node;
         nodes.push_back(end);
-        auto start = new Node({Edge::StoreEdge(group_idx, elem.start)});
+        auto start = new Node({Edge::StoreEdge(id.store.idx, elem.start)});
         nodes.push_back(start);
-        elem.end->edges.push_back(Edge::StoreEndEdge(group_idx, end));
-        ++group_idx;
+        elem.end->edges.push_back(Edge::StoreEndEdge(id.store.idx, end));
+        ++store_cnt;
         stack.push(Segment(start, end));
         break;
       }
@@ -281,11 +281,13 @@ Graph Graph::Compile(std::vector<Id> &&ids) {
   assert(stack.size() == 1);
   Segment &seg(stack.top());
   seg.end->status = Node::Match;
-  return Graph(seg, std::move(nodes));
+  return Graph(seg, std::move(nodes), store_cnt);
 }
 
 int Graph::Match(const std::string &s) const {
-  return Match(s, nullptr);
+  std::vector<std::string> groups;
+  if (!Match(s, &groups)) return -1;
+  return groups[0].size();
 }
 int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
   struct Pos {
@@ -296,8 +298,14 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
     Pos(std::string::const_iterator it, Node *node, size_t idx) :
         it(it), node(node), idx(idx) {}
   };
+
   std::stack<Pos> stack;
   Pos cur(s.begin(), seg_.start, 0);
+  std::vector<std::pair<
+      std::string::const_iterator, std::string::const_iterator>>
+      boundary(group_num_, {cur.it, cur.it});
+  bool match_str;
+
   while (true) {
     // set backtrack false
     // if reach str end, then
@@ -315,7 +323,9 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
     auto &edge = cur.node->edges[cur.idx];
     if (cur.it == s.end()) {
       if (cur.node->WillMatch()) {
-        return s.size();
+        boundary[0].second = s.end();
+        match_str = true;
+        goto finally;
       } else {
         backtrack = true;
       }
@@ -337,6 +347,11 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
           break;
         }
         case Edge::Store: {
+          boundary[edge.store.idx].first = cur.it;
+          break;
+        }
+        case Edge::StoreEnd: {
+          boundary[edge.store_end.idx].second = cur.it;
           break;
         }
         default:break;
@@ -346,14 +361,19 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
       // go other children, or pop the parent node
       while (true) {
         if (++cur.idx < cur.node->edges.size()) break;
-        if (stack.empty()) return -1;
+        if (stack.empty()) {
+          match_str = false;
+          goto finally;
+        }
         cur = stack.top();
         stack.pop();
       }
     } else {
       auto *next = edge.next;
       if (next->status == Node::Match) {
-        return cur.it - s.begin();
+        match_str = true;
+        boundary[0].second = cur.it;
+        goto finally;
       }
       if (!next->edges.empty()) {  // traverse the children
         stack.push(cur);
@@ -363,6 +383,20 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
       }
     }
   }
+  finally:
+  if (!match_str) return false;
+  if (groups) {
+    groups->clear();
+    groups->reserve(group_num_);
+    for (auto &pair : boundary) {
+      if (pair.first >= pair.second) {
+        groups->emplace_back();
+      } else {
+        groups->emplace_back(pair.first, pair.second);
+      }
+    }
+  }
+  return true;
 }
 
 void Graph::DrawMermaid() const {

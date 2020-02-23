@@ -5,6 +5,8 @@
 #include "regex/graph.h"
 
 #include <catch2/catch.hpp>
+#include <string>
+#include <vector>
 
 #include "test/utils.h"
 
@@ -120,13 +122,24 @@ TEST_CASE("graph match any and backslash", "[graph]") {
 
 TEST_CASE("graph match function that supports break backtrack", "[graph]") {
   auto graph = CompileInfix("ab", "ab.");
-  REQUIRE(2 == graph.Match("ab", nullptr));
+  REQUIRE(2 == graph.Match("ab"));
 
   graph = CompileInfix("aa??", "aa??.");
-  REQUIRE(1 == graph.Match("aa", nullptr));
+  REQUIRE(1 == graph.Match("aa"));
 
   graph = CompileInfix("aa*|b(cd*(e|fg))?h|i", "aa*.bcd*efg.|(..(?h..|i|");
-  REQUIRE(8 == graph.Match("bcdddfgh", nullptr));
-  REQUIRE(1 == graph.Match("i", nullptr));
-  REQUIRE(2 == graph.Match("bh", nullptr));
+  REQUIRE(8 == graph.Match("bcdddfgh"));
+  REQUIRE(1 == graph.Match("i"));
+  REQUIRE(2 == graph.Match("bh"));
+}
+
+TEST_CASE("graph match groups", "[graph]") {
+  auto graph = CompileInfix("aa*|b(cd*(e|fg))?h|i", "aa*.bcd*efg.|(..(?h..|i|");
+
+  std::vector<std::string> groups;
+  REQUIRE(graph.Match("bcdddfgh", &groups));
+  REQUIRE(3 == groups.size());
+  REQUIRE("bcdddfgh" == groups[0]);
+  REQUIRE("cdddfg" == groups[1]);
+  REQUIRE("fg" == groups[2]);
 }

@@ -38,6 +38,7 @@ std::vector<Id> StrToPostfixIds(const std::string &s) {
   std::stack<Id, std::vector<Id>> stack;
   std::stack<bool, std::vector<bool>> concat_stack;
   concat_stack.push(false);
+  size_t store_idx = 1;
   auto push_operator = [&vector = vector, &stack = stack](Id id) {
     switch (static_cast<int>(id.sym)) {
       // directly output the unary operator
@@ -85,7 +86,9 @@ std::vector<Id> StrToPostfixIds(const std::string &s) {
         break;
       }
       case Char::kParen: {
-        stack.push(Id(Id::Sym::Paren));
+        Id id(Id::Sym::Paren);
+        id.store.idx = store_idx++;
+        stack.push(id);
         break;
       }
       case Char::kParenEnd: {

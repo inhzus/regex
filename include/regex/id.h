@@ -55,7 +55,12 @@ struct Id {
   explicit Id(char ch) : sym(Sym::Char), ch(ch) {}
 
   Sym sym;
-  char ch;
+  union {
+    char ch;
+    struct {
+      size_t idx;
+    } store;
+  };
 };
 
 std::vector<Id> StrToPostfixIds(const std::string &s);

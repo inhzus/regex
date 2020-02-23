@@ -28,16 +28,16 @@ struct Edge {
   static Edge EpsilonEdge(Node *next) {
     return Edge(Epsilon, next);
   }
-  static Edge StoreEdge(int idx, Node *next) {
+  static Edge StoreEdge(size_t idx, Node *next) {
     return Edge(Store, next, idx);
   }
-  static Edge StoreEndEdge(int idx, Node *next) {
+  static Edge StoreEndEdge(size_t idx, Node *next) {
     return Edge(StoreEnd, next, idx);
   }
-  static Edge NamedEdge(int idx, const std::string &s, Node *next) {
+  static Edge NamedEdge(size_t idx, const std::string &s, Node *next) {
     return Edge(Named, next, idx, s);
   }
-  static Edge NamedEndEdge(int idx, const std::string &s, Node *next) {
+  static Edge NamedEndEdge(size_t idx, const std::string &s, Node *next) {
     return Edge(NamedEnd, next, idx, s);
   }
   ~Edge() {
@@ -55,10 +55,10 @@ struct Edge {
       char val;
     } ch;
     struct {
-      int idx;
+      size_t idx;
     } store, store_end;
     struct {
-      int idx;
+      size_t idx;
       char *name;
     } named, named_end;
   };
@@ -66,8 +66,9 @@ struct Edge {
  private:
   Edge(Type type, Node *next) : type(type), next(next), ch({0}) {}
   Edge(Type type, Node *next, char ch) : type(type), next(next), ch({ch}) {}
-  Edge(Type type, Node *next, int idx) : type(type), next(next), store({idx}) {}
-  Edge(Type type, Node *next, int idx, const std::string &s) :
+  Edge(Type type, Node *next, size_t idx) :
+      type(type), next(next), store({idx}) {}
+  Edge(Type type, Node *next, size_t idx, const std::string &s) :
       type(type), next(next), named({idx, nullptr}) {
     named.name = new char[s.size() + 1];
     snprintf(named.name, s.size() + 1, "%s", s.c_str());
@@ -116,10 +117,11 @@ class Graph {
     Deallocate();
     seg_ = graph.seg_;
     nodes_ = std::move(graph.nodes_);
+    group_num_ = graph.group_num_;
     return *this;
   }
-  Graph(const Segment &seg, std::vector<Node *> &&nodes) :
-      seg_(seg), nodes_(nodes) {}
+  Graph(const Segment &seg, std::vector<Node *> &&nodes, size_t group_num) :
+      seg_(seg), nodes_(nodes), group_num_(group_num) {}
   ~Graph() { Deallocate(); }
 
   void swap(Graph &graph) {
@@ -138,6 +140,7 @@ class Graph {
 
   Segment seg_;
   std::vector<Node *> nodes_;
+  size_t group_num_;
 };
 
 }  // namespace regex
