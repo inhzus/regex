@@ -13,7 +13,7 @@
 
 namespace regex {
 
-bool Node::IsMatch() const {
+bool Node::WillMatch() const {
   if (Match == status) return true;
   std::stack<const Node *, std::vector<const Node *>> stack;
   auto push_successor = [&stack = stack](const Node *node) {
@@ -285,49 +285,7 @@ Graph Graph::Compile(std::vector<Id> &&ids) {
 }
 
 int Graph::Match(const std::string &s) const {
-  std::stack<std::pair<
-      std::string::const_iterator, Node *>> stack;
-  stack.push(std::make_pair(s.begin(), seg_.start));
-  while (!stack.empty()) {
-    auto[it, node] = stack.top();
-    stack.pop();
-    if (s.end() == it) {
-      if (node->IsMatch())
-        return it - s.begin();
-      else
-        continue;
-    }
-    for (auto edge = node->edges.rbegin(); edge != node->edges.rend(); ++edge) {
-      std::string::const_iterator tit = it;
-      bool match = true;
-      switch (edge->type) {
-        case Edge::Any: {
-          ++tit;
-          FallThrough;
-        }
-        case Edge::Epsilon: {
-          break;
-        }
-        case Edge::Char: {
-          if (*tit != edge->ch.val) {
-            match = false;
-            break;
-          }
-          ++tit;
-          break;
-        }
-        case Edge::Store: {
-          break;
-        }
-        default:break;
-      }
-//      if (!EdgeMatchStrIt(*edge, &tit)) continue;
-      if (match)
-        stack.push(std::make_pair(tit, edge->next));
-    }
-    if (Node::Match == node->status) return it - s.begin();
-  }
-  return -1;
+  return Match(s, nullptr);
 }
 int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
   struct Pos {
@@ -341,32 +299,60 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
   std::stack<Pos> stack;
   Pos cur(s.begin(), seg_.start, 0);
   while (true) {
+    // set backtrack false
+    // if reach str end, then
+    //   if node will match, then
+    //     match and return
+    //   else
+    //     set backtrack true
+    // else
+    //   check edge matched. if not, set backtrack true
+    // if backtrack
+    //   do stack backtracking
+    // else
+    //   go dig children
+    bool backtrack = false;
     auto &edge = cur.node->edges[cur.idx];
-    bool match = true;
-    switch (edge.type) {
-      case Edge::Any: {
-        ++cur.it;
-        FallThrough;
+    if (cur.it == s.end()) {
+      if (cur.node->WillMatch()) {
+        return s.size();
+      } else {
+        backtrack = true;
       }
-      case Edge::Epsilon: {
-        break;
-      }
-      case Edge::Char: {
-        if (*cur.it != edge.ch.val) {
-          match = false;
+    } else {
+      switch (edge.type) {
+        case Edge::Any: {
+          ++cur.it;
+          FallThrough;
+        }
+        case Edge::Epsilon: {
           break;
         }
-        ++cur.it;
-        break;
+        case Edge::Char: {
+          if (*cur.it != edge.ch.val) {
+            backtrack = true;
+            break;
+          }
+          ++cur.it;
+          break;
+        }
+        case Edge::Store: {
+          break;
+        }
+        default:break;
       }
-      case Edge::Store: {
-        break;
-      }
-      default:break;
     }
-    if (match) {
+    if (backtrack) {
+      // go other children, or pop the parent node
+      while (true) {
+        if (++cur.idx < cur.node->edges.size()) break;
+        if (stack.empty()) return -1;
+        cur = stack.top();
+        stack.pop();
+      }
+    } else {
       auto *next = edge.next;
-      if (next->IsMatch()) {
+      if (next->status == Node::Match) {
         return cur.it - s.begin();
       }
       if (!next->edges.empty()) {  // traverse the children
@@ -374,14 +360,6 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
         cur = Pos(cur.it, next, 0);
       } else {
         assert(false);
-      }
-    } else {
-      // go other children, or pop the parent node
-      while (true) {
-        if (++cur.idx < cur.node->edges.size()) break;
-        if (stack.empty()) return -1;
-        cur = stack.top();
-        stack.pop();
       }
     }
   }
@@ -411,23 +389,6 @@ void Graph::DrawMermaid() const {
   }
 }
 
-bool Graph::EdgeMatchStrIt(const Edge &edge, std::string::const_iterator *it) {
-  switch (edge.type) {
-    case Edge::Any:++*it;
-      FallThrough;
-    case Edge::Epsilon:return true;
-    case Edge::Char: {
-      if (**it == edge.ch.val) {
-        ++*it;
-        return true;
-      } else {
-        return false;
-      }
-    }
-    default: assert(false);
-      return false;
-  }
-}
 void Graph::Deallocate() {
   for (Node *node : nodes_) {
     delete node;

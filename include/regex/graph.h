@@ -89,7 +89,7 @@ struct Node {
 //    return Node(Match, std::vector<Edge>());
 //  }
 
-  [[nodiscard]] bool IsMatch() const;
+  [[nodiscard]] bool WillMatch() const;
 
   Status status;
   std::vector<Edge> edges;
@@ -134,7 +134,6 @@ class Graph {
   void DrawMermaid() const;
 
  private:
-  static bool EdgeMatchStrIt(const Edge &edge, std::string::const_iterator *it);
   void Deallocate();
 
   Segment seg_;
