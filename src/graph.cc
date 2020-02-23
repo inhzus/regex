@@ -158,27 +158,25 @@ Graph Graph::Compile(const std::string &s) {
 Graph Graph::Compile(std::vector<Id> &&ids) {
   std::stack<Segment> stack;
   std::vector<Node *> nodes;  // for memory management
-  int group_idx = 0;
+  int group_idx = 1;
 
   for (auto id : ids) {
     switch (static_cast<int>(id.sym)) {
       case Id::Sym::Any: {
         // stack=0-->any-->end=0
-        auto start = new Node;
-        nodes.push_back(start);
         auto end = new Node;
         nodes.push_back(end);
-        start->edges.push_back(Edge::AnyEdge(end));
+        auto start = new Node({Edge::AnyEdge(end)});
+        nodes.push_back(start);
         stack.push(Segment(start, end));
         break;
       }
       case Id::Sym::Char: {
         // start=0-->ch=0-->end=0
-        auto start = new Node;
-        nodes.push_back(start);
         auto end = new Node;
         nodes.push_back(end);
-        start->edges.push_back(Edge::CharEdge(id.ch, end));
+        auto start = new Node({Edge::CharEdge(id.ch, end)});
+        nodes.push_back(start);
         stack.push(Segment(start, end));
         break;
       }
@@ -284,12 +282,6 @@ Graph Graph::Compile(std::vector<Id> &&ids) {
   Segment &seg(stack.top());
   seg.end->status = Node::Match;
   return Graph(seg, std::move(nodes));
-}
-
-Graph::~Graph() {
-  for (Node *node : nodes_) {
-    delete node;
-  }
 }
 
 int Graph::Match(const std::string &s) const {
@@ -434,6 +426,11 @@ bool Graph::EdgeMatchStrIt(const Edge &edge, std::string::const_iterator *it) {
     }
     default: assert(false);
       return false;
+  }
+}
+void Graph::Deallocate() {
+  for (Node *node : nodes_) {
+    delete node;
   }
 }
 

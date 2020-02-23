@@ -112,10 +112,15 @@ class Graph {
   Graph(const Graph &) = delete;
   Graph operator=(const Graph &) = delete;
   Graph(Graph &&) = default;
-  Graph &operator=(Graph &&) = default;
+  Graph &operator=(Graph &&graph) noexcept {
+    Deallocate();
+    seg_ = graph.seg_;
+    nodes_ = std::move(graph.nodes_);
+    return *this;
+  }
   Graph(const Segment &seg, std::vector<Node *> &&nodes) :
       seg_(seg), nodes_(nodes) {}
-  ~Graph();
+  ~Graph() { Deallocate(); }
 
   void swap(Graph &graph) {
     using std::swap;
@@ -130,6 +135,7 @@ class Graph {
 
  private:
   static bool EdgeMatchStrIt(const Edge &edge, std::string::const_iterator *it);
+  void Deallocate();
 
   Segment seg_;
   std::vector<Node *> nodes_;

@@ -124,7 +124,7 @@ TEST_CASE("graph match function that supports break backtrack", "[graph]") {
 
   graph = CompileInfix("aa??", "aa??.");
   REQUIRE(1 == graph.Match("aa", nullptr));
-  
+
   graph = CompileInfix("aa*|b(cd*(e|fg))?h|i", "aa*.bcd*efg.|(..(?h..|i|");
   REQUIRE(8 == graph.Match("bcdddfgh", nullptr));
   REQUIRE(1 == graph.Match("i", nullptr));
