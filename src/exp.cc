@@ -96,6 +96,14 @@ Exp Exp::FromStr(const std::string &s) {
         auto flag(quest + 1);
         if (flag == s.end()) break;  // grammar error
         switch (*flag) {
+          case Char::kAheadFlag: {
+            stack.push(Id(Id::Sym::AheadPr));
+            break;
+          }
+          case Char::kNegAheadFlag: {
+            stack.push(Id(Id::Sym::NegAheadPr));
+            break;
+          }
           case Char::kUnParenFlag: {
             stack.push(Id(Id::Sym::UnParen));
             break;
@@ -154,9 +162,12 @@ Exp Exp::FromStr(const std::string &s) {
       }
       case Char::kParenEnd: {
         concat_stack.pop();
+//        bool group_ignored = stack.top().sym.IsIgnored();
+//        if (concat_stack.top() && !group_ignored) {
         if (concat_stack.top()) {
           push_operator(Id(Id::Sym::Concat));
         }
+//        if (!group_ignored)
         concat_stack.top() = true;
         break;
       }

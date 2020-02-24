@@ -15,12 +15,21 @@
 namespace regex {
 
 struct Node;
+class Graph;
 
 struct Edge {
-  enum Type { Any, Char, Epsilon, Store, StoreEnd, Named, NamedEnd };
+  enum Type {
+    Empty, Ahead, NegAhead, Any, Char, Epsilon, Store, StoreEnd, Named, NamedEnd
+  };
 
-  static Edge CharEdge(char ch, Node *node) {
-    return Edge(Char, node, ch);
+  static Edge AheadEdge(Node *next, Graph *graph) {
+    return Edge(Ahead, next, graph);
+  }
+  static Edge NegAheadEdge(Node *next, Graph *graph) {
+    return Edge(NegAhead, next, graph);
+  }
+  static Edge CharEdge(char ch, Node *next) {
+    return Edge(Char, next, ch);
   }
   static Edge AnyEdge(Node *next) {
     return Edge(Any, next);
@@ -40,11 +49,11 @@ struct Edge {
   static Edge NamedEndEdge(size_t idx, const std::string &s, Node *next) {
     return Edge(NamedEnd, next, idx, s);
   }
-  ~Edge() {
-    if (type == Named || type == NamedEnd) {
-      delete named.name;
-    }
-  }
+  Edge(const Edge &) = delete;
+  Edge &operator=(const Edge &) = delete;
+  Edge(Edge &&) noexcept;
+  Edge &operator=(Edge &&) = delete;
+  ~Edge();
 
   [[nodiscard]] bool IsEpsilon() const { return Epsilon == type; }
 
@@ -54,6 +63,9 @@ struct Edge {
     struct {
       char val;
     } ch;
+    struct {
+      Graph *graph;
+    } ahead, neg_ahead;
     struct {
       size_t idx;
     } store, store_end;
@@ -66,6 +78,8 @@ struct Edge {
  private:
   Edge(Type type, Node *next) : type(type), next(next), ch({0}) {}
   Edge(Type type, Node *next, char ch) : type(type), next(next), ch({ch}) {}
+  Edge(Type type, Node *next, Graph *graph) :
+      type(type), next(next), ahead({graph}) {}
   Edge(Type type, Node *next, size_t idx) :
       type(type), next(next), store({idx}) {}
   Edge(Type type, Node *next, size_t idx, const std::string &s) :
@@ -81,8 +95,15 @@ struct Node {
   Node() : status(Default) {}
 //  explicit Node(const std::vector<Edge> &edges) :
 //      status(Default), edges(edges) {}
-  explicit Node(std::vector<Edge> &&edges) :
-      status(Default), edges(edges) {}
+  explicit Node(Edge &&edge) : status(Default) {
+    edges.push_back(std::move(edge));
+  }
+  explicit Node(Edge &&e1, Edge &&e2) : status(Default) {
+    edges.push_back(std::move(e1));
+    edges.push_back(std::move(e2));
+  }
+//  explicit Node(std::vector<Edge> &&edges) :
+//      status(Default), edges(std::move(edges)) {}
 //  Node(Status status, std::vector<Edge> edges) :
 //      status(status), edges(std::move(edges)) {}
 

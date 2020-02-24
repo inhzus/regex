@@ -12,6 +12,8 @@ std::string IdsToStr(const std::vector<Id> &vector) {
   std::string s;
   for (const auto &id : vector) {
     switch (static_cast<int>(id.sym)) {
+      case Id::Sym::AheadPr: s += "(=";
+        break;
       case Id::Sym::Any: s.push_back('_');
         break;
       case Id::Sym::Char: s.push_back(id.ch);

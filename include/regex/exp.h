@@ -12,8 +12,9 @@
 namespace regex {
 
 struct Char {
-  static const char kAny = '.', kBackslash = '\\', kConcat = '.', kEither = '|',
-      kMore = '*', kParen = '(', kParenEnd = ')', kParenFLag = '?', kPlus = '+',
+  static const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
+      kBackslash = '\\', kConcat = '.', kEither = '|', kMore = '*',
+      kParen = '(', kParenEnd = ')', kParenFLag = '?', kPlus = '+',
       kQuest = '?', kUnParenFlag = ':';
 };
 
@@ -45,7 +46,11 @@ struct Id {
     }
     [[nodiscard]] bool IsOperator() const { return !IsOperand(); }
     [[nodiscard]] bool IsParen() const {
-      return inner_ == Paren || inner_ == UnParen;
+      return inner_ == Paren || inner_ == UnParen
+          || inner_ == AheadPr || inner_ == NegAheadPr;
+    }
+    [[nodiscard]] bool IsIgnored() const {
+      return inner_ == AheadPr || inner_ == NegAheadPr;
     }
     [[nodiscard]] size_t order() const { return order_; }
 
