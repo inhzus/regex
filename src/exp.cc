@@ -2,7 +2,7 @@
 // Copyright [2020] <inhzus>
 //
 
-#include "regex/id.h"
+#include "regex/exp.h"
 
 #include <cassert>
 
@@ -32,7 +32,7 @@ size_t Id::Sym::Order(Id::Sym::_Inner inner) {
 }
 
 #define FALL_THROUGH do {} while (0)
-std::vector<Id> StrToPostfixIds(const std::string &s) {
+Exp Exp::FromStr(const std::string &s) {
   std::vector<Id> vector;
   std::string::const_iterator it(s.begin());
   std::stack<Id, std::vector<Id>> stack;
@@ -179,7 +179,7 @@ std::vector<Id> StrToPostfixIds(const std::string &s) {
     vector.push_back(stack.top());
     stack.pop();
   }
-  return vector;
+  return {std::move(vector), store_idx};
 }
 
 }  // namespace regex

@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "regex/id.h"
+#include "regex/exp.h"
 
 std::string IdsToStr(const std::vector<regex::Id> &vector);
 

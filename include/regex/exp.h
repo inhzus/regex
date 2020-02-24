@@ -1,8 +1,8 @@
 //
 // Copyright [2020] <inhzus>
 //
-#ifndef REGEX_ID_H_
-#define REGEX_ID_H_
+#ifndef REGEX_EXP_H_
+#define REGEX_EXP_H_
 
 #include <stack>
 #include <string>
@@ -22,6 +22,7 @@ struct Id {
   struct Sym {
    public:
     enum _Inner {
+      AheadPr, NegAheadPr,  // "(?=", "(?!"
       Any,  // "."
       Char,  // a character
       Concat,  // concatenate characters
@@ -67,8 +68,13 @@ struct Id {
   };
 };
 
-std::vector<Id> StrToPostfixIds(const std::string &s);
+struct Exp {
+  static Exp FromStr(const std::string &s);
+
+  std::vector<Id> ids;
+  size_t group_num;
+};
 
 }  // namespace regex
 
-#endif  // REGEX_ID_H_
+#endif  // REGEX_EXP_H_

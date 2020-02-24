@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-#include "regex/id.h"
+#include "regex/exp.h"
 
 namespace regex {
 
@@ -108,7 +108,7 @@ class Graph {
  public:
   static Graph CompilePostfix(const std::string &s);
   static Graph Compile(const std::string &s);
-  static Graph Compile(std::vector<Id> &&ids);
+  static Graph Compile(Exp &&exp);
 
   Graph(const Graph &) = delete;
   Graph operator=(const Graph &) = delete;

@@ -58,9 +58,9 @@ TEST_CASE("graph greedy or lazy", "[graph]") {
 
 inline regex::Graph
 CompileInfix(const std::string &infix, const std::string &postfix) {
-  auto ids = regex::StrToPostfixIds(infix);
-  REQUIRE(IdsToStr(ids) == postfix);
-  return regex::Graph::Compile(std::move(ids));
+  auto exp = regex::Exp::FromStr(infix);
+  REQUIRE(IdsToStr(exp.ids) == postfix);
+  return regex::Graph::Compile(std::move(exp));
 }
 
 TEST_CASE("graph of infix order", "[graph]") {

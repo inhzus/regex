@@ -2,14 +2,14 @@
 // Copyright [2020] <inhzus>
 //
 
-#include "regex/id.h"
+#include "regex/exp.h"
 
 #include <catch2/catch.hpp>
 
 #include "test/utils.h"
 
 std::string InfixToPostfix(const std::string &s) {
-  return IdsToStr(regex::StrToPostfixIds(s));
+  return IdsToStr(regex::Exp::FromStr(s).ids);
 }
 
 TEST_CASE("exp", "[exp]") {

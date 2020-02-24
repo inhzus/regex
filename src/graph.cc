@@ -153,14 +153,13 @@ Graph Graph::CompilePostfix(const std::string &s) {
   return Graph(seg, std::move(nodes), 1);
 }
 Graph Graph::Compile(const std::string &s) {
-  return Compile(StrToPostfixIds(s));
+  return Compile(Exp::FromStr(s));
 }
-Graph Graph::Compile(std::vector<Id> &&ids) {
+Graph Graph::Compile(Exp &&exp) {
   std::stack<Segment> stack;
   std::vector<Node *> nodes;  // for memory management
-  size_t store_cnt = 1;
 
-  for (auto id : ids) {
+  for (auto id : exp.ids) {
     switch (static_cast<int>(id.sym)) {
       case Id::Sym::Any: {
         // stack=0-->any-->end=0
@@ -244,7 +243,6 @@ Graph Graph::Compile(std::vector<Id> &&ids) {
         auto start = new Node({Edge::StoreEdge(id.store.idx, elem.start)});
         nodes.push_back(start);
         elem.end->edges.push_back(Edge::StoreEndEdge(id.store.idx, end));
-        ++store_cnt;
         stack.push(Segment(start, end));
         break;
       }
@@ -284,7 +282,7 @@ Graph Graph::Compile(std::vector<Id> &&ids) {
   assert(stack.size() == 1);
   Segment &seg(stack.top());
   seg.end->status = Node::Match;
-  return Graph(seg, std::move(nodes), store_cnt);
+  return Graph(seg, std::move(nodes), exp.group_num);
 }
 
 int Graph::Match(const std::string &s) const {
