@@ -172,4 +172,12 @@ TEST_CASE("graph look-ahead", "[graph]") {
   REQUIRE("b" == groups[2]);
 
   REQUIRE_FALSE(graph.Match("ac", &groups));
+
+  graph = CompileInfix("a(?!(b))(b|c)", "ab((!bc|(..");
+  REQUIRE(graph.Match("ac", &groups));
+  REQUIRE("ac" == groups[0]);
+  REQUIRE("b" == groups[1]);
+  REQUIRE("c" == groups[2]);
+
+  REQUIRE_FALSE(graph.Match("ab", &groups));
 }

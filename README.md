@@ -8,7 +8,7 @@
 - [x] infix expression
 - [x] verify: ".", "\\"
 - [x] grouping: (...), (?:...)
-- [ ] (negative) look-ahead assertions: (?=...), (?!...)
+- [x] (negative) look-ahead assertions: (?=...), (?!...)
 - [ ] token to mark greedy / reluctant / possessive
 - [ ] possessive: "\*+", "?+"
 - [ ] {m, n}

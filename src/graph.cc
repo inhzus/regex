@@ -194,7 +194,7 @@ Graph Graph::Compile(Exp &&exp) {
         nodes.push_back(end);
         Node *start;
         if (id.sym == Id::Sym::AheadPr) {
-          start = new Node(std::move(Edge::AheadEdge(end, sub_graph)));
+          start = new Node(Edge::AheadEdge(end, sub_graph));
         } else {
           // as id.sym == Id::Sym::NegAheadPr
           start = new Node(Edge::NegAheadEdge(end, sub_graph));
@@ -374,6 +374,13 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
     switch (edge.type) {
       case Edge::Ahead: {
         if (!edge.ahead.graph->Match(
+            std::string(cur.it, s.end()), groups)) {
+          backtrack = true;
+        }
+        break;
+      }
+      case Edge::NegAhead: {
+        if (edge.neg_ahead.graph->Match(
             std::string(cur.it, s.end()), groups)) {
           backtrack = true;
         }

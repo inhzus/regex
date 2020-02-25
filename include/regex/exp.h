@@ -49,9 +49,6 @@ struct Id {
       return inner_ == Paren || inner_ == UnParen
           || inner_ == AheadPr || inner_ == NegAheadPr;
     }
-    [[nodiscard]] bool IsIgnored() const {
-      return inner_ == AheadPr || inner_ == NegAheadPr;
-    }
     [[nodiscard]] size_t order() const { return order_; }
 
    private:
