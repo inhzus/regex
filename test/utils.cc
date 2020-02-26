@@ -26,7 +26,9 @@ std::string IdsToStr(const std::vector<Id> &vector) {
         break;
       case Id::Sym::More: s.push_back('*');
         break;
-      case Id::Sym::LazyMore: s += "*?";
+      case Id::Sym::PosMore: s += "*+";
+        break;
+      case Id::Sym::RelMore: s += "*?";
         break;
       case Id::Sym::Paren: s.push_back('(');
         break;
@@ -35,7 +37,7 @@ std::string IdsToStr(const std::vector<Id> &vector) {
         break;
       case Id::Sym::Quest: s.push_back('?');
         break;
-      case Id::Sym::LazyQuest: s += "??";
+      case Id::Sym::RelQuest: s += "??";
         break;
       default:assert(false);
         break;

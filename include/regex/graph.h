@@ -5,6 +5,7 @@
 #define REGEX_GRAPH_H_
 
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -19,7 +20,8 @@ class Graph;
 
 struct Edge {
   enum Type {
-    Empty, Ahead, NegAhead, Any, Char, Epsilon, Store, StoreEnd, Named, NamedEnd
+    Empty, Ahead, NegAhead, Any, Brake, Char, Epsilon, Store, StoreEnd, Named,
+    NamedEnd
   };
 
   static Edge AheadEdge(Node *next, Graph *graph) {
@@ -36,6 +38,10 @@ struct Edge {
   }
   static Edge EpsilonEdge(Node *next) {
     return Edge(Epsilon, next);
+  }
+  static Edge BrakeEdge(
+      Node *next, bool *pass, std::function<void()> *initializer) {
+    return Edge(Brake, next, pass, initializer);
   }
   static Edge StoreEdge(size_t idx, Node *next) {
     return Edge(Store, next, idx);
@@ -67,6 +73,9 @@ struct Edge {
       Graph *graph;
     } ahead, neg_ahead;
     struct {
+      bool *pass;
+    } brake;
+    struct {
       size_t idx;
     } store, store_end;
     struct {
@@ -86,6 +95,12 @@ struct Edge {
       type(type), next(next), named({idx, nullptr}) {
     named.name = new char[s.size() + 1];
     snprintf(named.name, s.size() + 1, "%s", s.c_str());
+  }
+  Edge(Type type, Node *next, bool *pass, std::function<void()> *initializer) :
+      type(type), next(next), brake({pass}) {
+    *initializer = [pass = pass]() {
+      *pass = true;
+    };
   }
 };
 
@@ -136,20 +151,17 @@ class Graph {
   Graph(Graph &&) = default;
   Graph &operator=(Graph &&graph) noexcept {
     Deallocate();
+    group_num_ = graph.group_num_;
     seg_ = graph.seg_;
     nodes_ = std::move(graph.nodes_);
-    group_num_ = graph.group_num_;
+    initializers_ = std::move(graph.initializers_);
     return *this;
   }
-  Graph(const Segment &seg, std::vector<Node *> &&nodes, size_t group_num) :
-      seg_(seg), nodes_(nodes), group_num_(group_num) {}
+  Graph(const Segment &seg, std::vector<Node *> &&nodes,
+        std::vector<std::function<void()>> &&initializers, size_t group_num) :
+      group_num_(group_num), seg_(seg), nodes_(nodes),
+      initializers_(initializers) {}
   ~Graph() { Deallocate(); }
-
-  void swap(Graph &graph) {
-    using std::swap;
-    swap(seg_, graph.seg_);
-    swap(nodes_, graph.nodes_);
-  }
 
   [[nodiscard]] int Match(const std::string &s) const;
   [[nodiscard]] int
@@ -159,9 +171,10 @@ class Graph {
  private:
   void Deallocate();
 
+  size_t group_num_;
   Segment seg_;
   std::vector<Node *> nodes_;
-  size_t group_num_;
+  std::vector<std::function<void()>> initializers_;
 };
 
 }  // namespace regex

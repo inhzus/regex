@@ -28,11 +28,11 @@ struct Id {
       Char,  // a character
       Concat,  // concatenate characters
       Either,  // "|"
-      More, LazyMore,  // "*", "*?"
+      More, RelMore, PosMore,  // "*", "*+", "*?"
       Paren, ParenEnd,  // "(", ")"
       UnParen,  // "(?:"
-      Plus, LazyPlus,  // "+", "+?"
-      Quest, LazyQuest  // "?", "??"
+      Plus, PosPlus, RelPlus,  // "+", "++", "+?"
+      Quest, PosQuest, RelQuest  // "?", "?+", "??"
     };
     explicit Sym(Sym::_Inner inner) : inner_(inner), order_(Order(inner)) {}
     bool operator==(Sym::_Inner inner) { return inner == inner_; }

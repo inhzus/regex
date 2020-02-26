@@ -22,9 +22,9 @@ size_t Id::Sym::Order(Id::Sym::_Inner inner) {
 //    case Paren:
 //    case ParenEnd:return 4;
     case More:
-    case LazyMore:
+    case RelMore:
     case Quest:
-    case LazyQuest:return 5;
+    case RelQuest:return 5;
     case Concat:return 6;
     case Either:return 8;
     default:return 0;
@@ -43,9 +43,11 @@ Exp Exp::FromStr(const std::string &s) {
     switch (static_cast<int>(id.sym)) {
       // directly output the unary operator
       case Id::Sym::More:
-      case Id::Sym::LazyMore:
+      case Id::Sym::PosMore:
+      case Id::Sym::RelMore:
       case Id::Sym::Quest:
-      case Id::Sym::LazyQuest:vector.push_back(id);
+      case Id::Sym::PosQuest:
+      case Id::Sym::RelQuest:vector.push_back(id);
         return;
     }
     while (!stack.empty()) {
@@ -62,15 +64,20 @@ Exp Exp::FromStr(const std::string &s) {
   };
   for (; s.end() != it; ++it) {
     char op = *it;
-    bool greedy = true;
+    enum { Greedy, Possessive, Reluctant } quantifier;
+    quantifier = Greedy;
     switch (op) {
       // set greedy or lazy mode
       case Char::kMore:
       case Char::kQuest: {
         auto next(it + 1);
-        if (next != s.end() && *next == Char::kQuest) {
+        if (next == s.end()) break;
+        if (*next == Char::kPlus) {
           it = next;
-          greedy = false;
+          quantifier = Possessive;
+        } else if (*next == Char::kQuest) {
+          it = next;
+          quantifier = Reluctant;
         }
         break;
       }
@@ -126,18 +133,24 @@ Exp Exp::FromStr(const std::string &s) {
         break;
       }
       case Char::kMore: {
-        if (greedy) {
-          push_operator(Id(Id::Sym::More));
-        } else {
-          push_operator(Id(Id::Sym::LazyMore));
+        switch (quantifier) {
+          case Greedy:push_operator(Id(Id::Sym::More));
+            break;
+          case Possessive: push_operator(Id(Id::Sym::PosMore));
+            break;
+          case Reluctant: push_operator(Id(Id::Sym::RelMore));
+            break;
         }
         break;
       }
       case Char::kQuest : {
-        if (greedy) {
-          push_operator(Id(Id::Sym::Quest));
-        } else {
-          push_operator(Id(Id::Sym::LazyQuest));
+        switch (quantifier) {
+          case Greedy: push_operator(Id(Id::Sym::Quest));
+            break;
+          case Possessive: push_operator(Id(Id::Sym::PosQuest));
+            break;
+          case Reluctant: push_operator(Id(Id::Sym::RelQuest));
+            break;
         }
         break;
       }

@@ -5,11 +5,11 @@
 #include "regex/graph.h"
 
 #include <cassert>
+#include <functional>
 #include <queue>
 #include <stack>
 #include <unordered_map>
-
-#include "regex/regex.h"
+#include <regex/graph.h>
 
 namespace regex {
 
@@ -20,11 +20,13 @@ Edge::Edge(Edge &&e) noexcept : type(e.type), next(e.next), named(e.named) {
 
 Edge::~Edge() {
   switch (type) {
-    case Named:
-    case NamedEnd: delete named.name;
-      break;
     case Ahead:
     case NegAhead: delete ahead.graph;
+      break;
+    case Brake: delete brake.pass;
+      break;
+    case Named:
+    case NamedEnd: delete named.name;
       break;
     default: break;
   }
@@ -166,7 +168,7 @@ Graph Graph::CompilePostfix(const std::string &s) {
   assert(stack.size() == 1);
   Segment &seg(stack.top());
   seg.end->status = Node::Match;
-  return Graph(seg, std::move(nodes), 1);
+  return Graph(seg, std::move(nodes), {}, 1);
 }
 Graph Graph::Compile(const std::string &s) {
   return Compile(Exp::FromStr(s));
@@ -174,6 +176,7 @@ Graph Graph::Compile(const std::string &s) {
 Graph Graph::Compile(Exp &&exp) {
   std::stack<Segment> stack;
   std::vector<Node *> nodes;  // for memory management
+  std::vector<std::function<void()>> initializers;
 
   for (auto id : exp.ids) {
     switch (static_cast<int>(id.sym)) {
@@ -189,7 +192,7 @@ Graph Graph::Compile(Exp &&exp) {
         Segment seg(stack.top());
         stack.pop();
         seg.end->status = Node::Match;
-        auto *sub_graph = new Graph(seg, {}, exp.group_num);
+        auto *sub_graph = new Graph(seg, {}, {}, exp.group_num);
         auto end = new Node;
         nodes.push_back(end);
         Node *start;
@@ -252,7 +255,8 @@ Graph Graph::Compile(Exp &&exp) {
         break;
       }
       case Id::Sym::More:
-      case Id::Sym::LazyMore: {
+      case Id::Sym::PosMore:
+      case Id::Sym::RelMore: {
         //       |-->0==>0-->|
         // start=0<--.<--.<--|   |-->end=0
         //       |-->.-->.-->.-->|
@@ -262,12 +266,25 @@ Graph Graph::Compile(Exp &&exp) {
         nodes.push_back(end);
         std::vector<Edge> edges;
         Node *start;
-        if (id.sym == Id::Sym::More) {
-          start = new Node(Edge::EpsilonEdge(elem.start),
-                           Edge::EpsilonEdge(end));
-        } else {
-          start = new Node(Edge::EpsilonEdge(end),
-                           Edge::EpsilonEdge(elem.start));
+        switch (static_cast<int>(id.sym)) {
+          case Id::Sym::More: {
+            start = new Node(Edge::EpsilonEdge(elem.start),
+                             Edge::EpsilonEdge(end));
+            break;
+          }
+          case Id::Sym::RelMore: {
+            start = new Node(Edge::EpsilonEdge(end),
+                             Edge::EpsilonEdge(elem.start));
+            break;
+          }
+          default:  // ain't fall to default case, only to avoid clang warning
+          case Id::Sym::PosMore: {
+            std::function<void()> initializer;
+            start = new Node(
+                Edge::EpsilonEdge(elem.start),
+                Edge::BrakeEdge(end, new bool, &initializer));
+            initializers.push_back(initializer);
+          }
         }
         nodes.push_back(start);
         elem.end->edges.push_back(Edge::EpsilonEdge(start));
@@ -291,7 +308,7 @@ Graph Graph::Compile(Exp &&exp) {
         break;
       }
       case Id::Sym::Quest:
-      case Id::Sym::LazyQuest: {
+      case Id::Sym::RelQuest: {
         //       |   elem    |
         //       |-->0==>0-->|
         // start=0       end=0
@@ -322,7 +339,7 @@ Graph Graph::Compile(Exp &&exp) {
   assert(stack.size() == 1);
   Segment &seg(stack.top());
   seg.end->status = Node::Match;
-  return Graph(seg, std::move(nodes), exp.group_num);
+  return Graph(seg, std::move(nodes), std::move(initializers), exp.group_num);
 }
 
 int Graph::Match(const std::string &s) const {
@@ -331,6 +348,7 @@ int Graph::Match(const std::string &s) const {
   return groups[0].size();
 }
 int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
+  for (const auto &f : initializers_) { f(); }
   struct Pos {
     std::string::const_iterator it;
     Node *node;
@@ -395,6 +413,14 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
         FallThrough;
       }
       case Edge::Epsilon: {
+        break;
+      }
+      case Edge::Brake: {
+        if (*edge.brake.pass) {
+          *edge.brake.pass = false;
+        } else {
+          backtrack = true;
+        }
         break;
       }
       case Edge::Char: {
@@ -468,12 +494,31 @@ void Graph::DrawMermaid() const {
         map[edge.next] = id++;
         stack.push(edge.next);
       }
-      if (!edge.IsEpsilon()) {
-        printf("%d-->|%c|%d\n", map[node], edge.ch.val, map[edge.next]);
-      } else if (Node::Match == edge.next->status) {
-        printf("%d-->*%d\n", map[node], map[edge.next]);
-      } else {
+      std::string s;
+      switch (edge.type) {
+        case Edge::Ahead:s = "?=";
+          break;
+        case Edge::NegAhead: s = "?!";
+          break;
+        case Edge::Any: s = ".";
+          break;
+        case Edge::Brake: s = "+";
+          break;
+        case Edge::Char: s = edge.ch.val;
+          break;
+        case Edge::Store: s = "(" + std::to_string(edge.store.idx);
+          break;
+        case Edge::StoreEnd: s = std::to_string(edge.store.idx) + ")";
+          break;
+        default: break;
+      }
+      if (edge.type == Edge::Epsilon) {
         printf("%d-->%d\n", map[node], map[edge.next]);
+      } else {
+        printf("%d-->|%s|%d\n", map[node], s.c_str(), map[edge.next]);
+      }
+      if (Node::Match == edge.next->status) {
+        printf("%d-->|match|%d\n", map[edge.next], map[edge.next]);
       }
     }
   }
