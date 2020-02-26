@@ -37,6 +37,8 @@ std::string IdsToStr(const std::vector<Id> &vector) {
         break;
       case Id::Sym::Quest: s.push_back('?');
         break;
+      case Id::Sym::PosQuest: s += "?+";
+        break;
       case Id::Sym::RelQuest: s += "??";
         break;
       default:assert(false);

@@ -184,11 +184,15 @@ TEST_CASE("graph look-ahead", "[graph]") {
 
 TEST_CASE("graph possessive quantifiers", "[graph]") {
   auto graph = CompileInfix(".*+b", "_*+b.");
-  graph.DrawMermaid();
+//  graph.DrawMermaid();
   REQUIRE_FALSE(graph.Match("b", nullptr));
   graph = CompileInfix("a*+b", "a*+b.");
   REQUIRE(4 == graph.Match("aaab"));
   REQUIRE(4 == graph.Match("aaab"));
   graph = CompileInfix(".*b", "_*b.");
   REQUIRE(graph.Match("aaab", nullptr));
+
+  graph = CompileInfix("a?+a", "a?+a.");
+  REQUIRE_FALSE(graph.Match("a", nullptr));
+  REQUIRE(graph.Match("aa", nullptr));
 }

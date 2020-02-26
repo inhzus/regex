@@ -22,8 +22,10 @@ size_t Id::Sym::Order(Id::Sym::_Inner inner) {
 //    case Paren:
 //    case ParenEnd:return 4;
     case More:
+    case PosMore:
     case RelMore:
     case Quest:
+    case PosQuest:
     case RelQuest:return 5;
     case Concat:return 6;
     case Either:return 8;

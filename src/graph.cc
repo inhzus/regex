@@ -9,7 +9,6 @@
 #include <queue>
 #include <stack>
 #include <unordered_map>
-#include <regex/graph.h>
 
 namespace regex {
 
@@ -283,7 +282,7 @@ Graph Graph::Compile(Exp &&exp) {
             start = new Node(
                 Edge::EpsilonEdge(elem.start),
                 Edge::BrakeEdge(end, new bool, &initializer));
-            initializers.push_back(initializer);
+            initializers.push_back(std::move(initializer));
           }
         }
         nodes.push_back(start);
@@ -318,12 +317,26 @@ Graph Graph::Compile(Exp &&exp) {
         auto end = new Node;
         nodes.push_back(end);
         Node *start;
-        if (id.sym == Id::Sym::Quest) {
-          start = new Node(Edge::EpsilonEdge(elem.start),
-                           Edge::EpsilonEdge(end));
-        } else {
-          start = new Node(Edge::EpsilonEdge(end),
-                           Edge::EpsilonEdge(elem.start));
+        switch (static_cast<int>(id.sym)) {
+          case Id::Sym::Quest: {
+            start = new Node(Edge::EpsilonEdge(elem.start),
+                             Edge::EpsilonEdge(end));
+            break;
+          }
+          case Id::Sym::RelQuest: {
+            start = new Node(Edge::EpsilonEdge(end),
+                             Edge::EpsilonEdge(elem.start));
+            break;
+          }
+          default:
+          case Id::Sym::PosQuest: {
+            std::function<void()> initializer;
+            start = new Node(
+                Edge::EpsilonEdge(elem.start),
+                Edge::BrakeEdge(end, new bool, &initializer));
+            initializers.push_back(std::move(initializer));
+            break;
+          }
         }
         nodes.push_back(start);
         elem.end->edges.push_back(Edge::EpsilonEdge(end));
