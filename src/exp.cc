@@ -26,7 +26,8 @@ size_t Id::Sym::Order(Id::Sym::_Inner inner) {
     case RelMore:
     case Quest:
     case PosQuest:
-    case RelQuest:return 5;
+    case RelQuest:
+    case Repeat: return 5;
     case Concat:return 6;
     case Either:return 8;
     default:return 0;
@@ -49,7 +50,8 @@ Exp Exp::FromStr(const std::string &s) {
       case Id::Sym::RelMore:
       case Id::Sym::Quest:
       case Id::Sym::PosQuest:
-      case Id::Sym::RelQuest:vector.push_back(id);
+      case Id::Sym::RelQuest:
+      case Id::Sym::Repeat: vector.push_back(id);
         return;
     }
     while (!stack.empty()) {
@@ -90,6 +92,22 @@ Exp Exp::FromStr(const std::string &s) {
         vector.emplace_back(Id::Sym::Any);
         break;
       }
+      case Char::kBrace: {
+        size_t lower_bound = 0, upper_bound = 0;
+        for (++it; *it != Char::kBraceSplit; ++it) {
+          lower_bound = lower_bound * 10 + *it - '0';
+        }
+        ++it;
+        if (*it == Char::kBraceEnd) {
+          upper_bound = std::numeric_limits<size_t>::max();
+        } else {
+          for (; *it != Char::kBraceEnd; ++it) {
+            upper_bound = upper_bound * 10 + *it - '0';
+          }
+        }
+        push_operator(Id::RepeatId(lower_bound, upper_bound));
+        break;
+      }
       case Char::kEither: {
         push_operator(Id(Id::Sym::Either));
         break;
@@ -97,9 +115,7 @@ Exp Exp::FromStr(const std::string &s) {
       case Char::kParen: {
         auto quest(it + 1);
         if (quest == s.end() || *quest != Char::kParenFLag) {
-          Id id(Id::Sym::Paren);
-          id.store.idx = store_idx++;
-          stack.push(id);
+          stack.push(Id::ParenId(store_idx++));
           break;
         }
         auto flag(quest + 1);
@@ -145,7 +161,7 @@ Exp Exp::FromStr(const std::string &s) {
         }
         break;
       }
-      case Char::kQuest : {
+      case Char::kQuest: {
         switch (quantifier) {
           case Greedy: push_operator(Id(Id::Sym::Quest));
             break;
@@ -187,7 +203,8 @@ Exp Exp::FromStr(const std::string &s) {
         break;
       }
       case Char::kMore:
-      case Char::kQuest: {
+      case Char::kQuest:
+      case Char::kBrace: {
         break;
       }
       case Char::kAny:

@@ -13,9 +13,9 @@ namespace regex {
 
 struct Char {
   static const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
-      kBackslash = '\\', kConcat = '.', kEither = '|', kMore = '*',
-      kParen = '(', kParenEnd = ')', kParenFLag = '?', kPlus = '+',
-      kQuest = '?', kUnParenFlag = ':';
+      kBackslash = '\\', kBrace = '{', kBraceEnd = '}', kBraceSplit = ',',
+      kConcat = '.', kEither = '|', kMore = '*', kParen = '(', kParenEnd = ')',
+      kParenFLag = '?', kPlus = '+', kQuest = '?', kUnParenFlag = ':';
 };
 
 struct Id {
@@ -32,7 +32,8 @@ struct Id {
       Paren, ParenEnd,  // "(", ")"
       UnParen,  // "(?:"
       Plus, PosPlus, RelPlus,  // "+", "++", "+?"
-      Quest, PosQuest, RelQuest  // "?", "?+", "??"
+      Quest, PosQuest, RelQuest,  // "?", "?+", "??"
+      Repeat  // "{m,n}"
     };
     explicit Sym(Sym::_Inner inner) : inner_(inner), order_(Order(inner)) {}
     bool operator==(Sym::_Inner inner) { return inner == inner_; }
@@ -58,6 +59,13 @@ struct Id {
     size_t order_;
   };
 
+  inline static Id ParenId(size_t idx) {
+    return Id(Id::Sym::Paren, idx);
+  }
+  inline static Id RepeatId(size_t lower, size_t upper) {
+    return Id(Id::Sym::Repeat, lower, upper);
+  }
+
   explicit Id(Sym::_Inner sym) : sym(sym), ch() {}
   explicit Id(char ch) : sym(Sym::Char), ch(ch) {}
 
@@ -67,7 +75,16 @@ struct Id {
     struct {
       size_t idx;
     } store;
+    struct {
+      size_t lower;
+      size_t upper;
+    } repeat;
   };
+
+ private:
+  Id(Sym::_Inner sym, size_t idx) : sym(sym), store({idx}) {}
+  Id(Sym::_Inner sym, size_t lower, size_t upper) :
+      sym(sym), repeat({lower, upper}) {}
 };
 
 struct Exp {

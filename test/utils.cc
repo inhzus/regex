@@ -5,6 +5,7 @@
 #include "test/utils.h"
 
 #include <cassert>
+#include <limits>
 
 using regex::Id;
 
@@ -41,6 +42,18 @@ std::string IdsToStr(const std::vector<Id> &vector) {
         break;
       case Id::Sym::RelQuest: s += "??";
         break;
+      case Id::Sym::Repeat: {
+        s.push_back('{');
+        if (id.repeat.lower != 0) {
+          s += std::to_string(id.repeat.lower);
+        }
+        s.push_back(',');
+        if (id.repeat.upper != std::numeric_limits<size_t>::max()) {
+          s += std::to_string(id.repeat.upper);
+        }
+        s.push_back('}');
+        break;
+      }
       default:assert(false);
         break;
     }

@@ -196,3 +196,20 @@ TEST_CASE("graph possessive quantifiers", "[graph]") {
   REQUIRE_FALSE(graph.Match("a", nullptr));
   REQUIRE(graph.Match("aa", nullptr));
 }
+
+TEST_CASE("graph {m,n}", "[graph]") {
+  auto graph = CompileInfix("a{1,5}b", "a{1,5}b.");
+  REQUIRE(2 == graph.Match("ab"));
+  REQUIRE(6 == graph.Match("aaaaab"));
+  REQUIRE(-1 == graph.Match("b"));
+  REQUIRE(-1 == graph.Match("aaaaaab"));
+
+  graph = CompileInfix("a{,1}b", "a{,1}b.");
+  REQUIRE(1 == graph.Match("b"));
+  REQUIRE(2 == graph.Match("ab"));
+  REQUIRE(-1 == graph.Match("aab"));
+
+  graph = CompileInfix("a{1,}b", "a{1,}b.");
+  REQUIRE(-1 == graph.Match("b"));
+  REQUIRE(2 == graph.Match("ab"));
+}

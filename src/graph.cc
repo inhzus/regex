@@ -27,6 +27,8 @@ Edge::~Edge() {
     case Named:
     case NamedEnd: delete named.name;
       break;
+    case Repeat: delete bound.repeat;
+      break;
     default: break;
   }
 }
@@ -158,7 +160,7 @@ Graph Graph::CompilePostfix(const std::string &s) {
         nodes.push_back(start);
         auto end = new Node;
         nodes.push_back(end);
-        start->edges.push_back(Edge::CharEdge(ch, end));
+        start->edges.push_back(Edge::CharEdge(end, ch));
         stack.push(Segment(start, end));
         break;
       }
@@ -218,7 +220,7 @@ Graph Graph::Compile(Exp &&exp) {
         // start=0-->ch=0-->end=0
         auto end = new Node;
         nodes.push_back(end);
-        auto start = new Node(Edge::CharEdge(id.ch, end));
+        auto start = new Node(Edge::CharEdge(end, id.ch));
         nodes.push_back(start);
         stack.push(Segment(start, end));
         break;
@@ -297,9 +299,9 @@ Graph Graph::Compile(Exp &&exp) {
         stack.pop();
         auto end = new Node;
         nodes.push_back(end);
-        auto start = new Node(Edge::StoreEdge(id.store.idx, elem.start));
+        auto start = new Node(Edge::StoreEdge(elem.start, id.store.idx));
         nodes.push_back(start);
-        elem.end->edges.push_back(Edge::StoreEndEdge(id.store.idx, end));
+        elem.end->edges.push_back(Edge::StoreEndEdge(end, id.store.idx));
         stack.push(Segment(start, end));
         break;
       }
@@ -340,6 +342,38 @@ Graph Graph::Compile(Exp &&exp) {
         }
         nodes.push_back(start);
         elem.end->edges.push_back(Edge::EpsilonEdge(end));
+        stack.push(Segment(start, end));
+        break;
+      }
+      case Id::Sym::Repeat: {
+        //       Upper
+        //       |-->0==>0-->|
+        //       |  Repeat   |
+        // start=0<--.<--.<--|
+        //       |  Lower        |-->end=0
+        //       |-->.-->.-->.-->|
+        Segment elem(stack.top());
+        stack.pop();
+        auto start = new Node;
+        nodes.push_back(start);
+        auto repeat = new size_t;
+        std::function<void()> initializer;
+        elem.end->edges.push_back(
+            Edge::RepeatEdge(start, repeat, &initializer));
+        initializers.push_back(std::move(initializer));
+        if (id.repeat.upper != std::numeric_limits<size_t>::max()) {
+          start->edges.push_back(
+              Edge::UpperEdge(elem.start, repeat, id.repeat.upper));
+        } else {
+          start->edges.push_back(Edge::EpsilonEdge(elem.start));
+        }
+        auto end = new Node;
+        nodes.push_back(end);
+        if (id.repeat.lower != 0) {
+          start->edges.push_back(Edge::LowerEdge(end, repeat, id.repeat.lower));
+        } else {
+          start->edges.push_back(Edge::EpsilonEdge(end));
+        }
         stack.push(Segment(start, end));
         break;
       }
@@ -444,12 +478,28 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
         ++cur.it;
         break;
       }
+      case Edge::Lower: {
+        if (*edge.bound.repeat < edge.bound.num) {
+          backtrack = true;
+        }
+        break;
+      }
       case Edge::Store: {
         boundary[edge.store.idx].first = cur.it;
         break;
       }
       case Edge::StoreEnd: {
         boundary[edge.store_end.idx].second = cur.it;
+        break;
+      }
+      case Edge::Repeat: {
+        ++*edge.repeat.val;
+        break;
+      }
+      case Edge::Upper: {
+        if (*edge.bound.repeat >= edge.bound.num) {
+          backtrack = true;
+        }
         break;
       }
       default:break;

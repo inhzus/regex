@@ -20,8 +20,8 @@ class Graph;
 
 struct Edge {
   enum Type {
-    Empty, Ahead, NegAhead, Any, Brake, Char, Epsilon, Store, StoreEnd, Named,
-    NamedEnd
+    Empty, Ahead, NegAhead, Any, Brake, Char, Epsilon, Lower, Store, StoreEnd,
+    Named, NamedEnd, Repeat, Upper
   };
 
   static Edge AheadEdge(Node *next, Graph *graph) {
@@ -30,7 +30,7 @@ struct Edge {
   static Edge NegAheadEdge(Node *next, Graph *graph) {
     return Edge(NegAhead, next, graph);
   }
-  static Edge CharEdge(char ch, Node *next) {
+  static Edge CharEdge(Node *next, char ch) {
     return Edge(Char, next, ch);
   }
   static Edge AnyEdge(Node *next) {
@@ -43,17 +43,27 @@ struct Edge {
       Node *next, bool *pass, std::function<void()> *initializer) {
     return Edge(Brake, next, pass, initializer);
   }
-  static Edge StoreEdge(size_t idx, Node *next) {
+  static Edge LowerEdge(Node *next, size_t *repeat, size_t num) {
+    return Edge(Lower, next, repeat, num);
+  }
+  static Edge StoreEdge(Node *next, size_t idx) {
     return Edge(Store, next, idx);
   }
-  static Edge StoreEndEdge(size_t idx, Node *next) {
+  static Edge StoreEndEdge(Node *next, size_t idx) {
     return Edge(StoreEnd, next, idx);
   }
-  static Edge NamedEdge(size_t idx, const std::string &s, Node *next) {
+  static Edge NamedEdge(Node *next, size_t idx, const std::string &s) {
     return Edge(Named, next, idx, s);
   }
-  static Edge NamedEndEdge(size_t idx, const std::string &s, Node *next) {
+  static Edge NamedEndEdge(Node *next, size_t idx, const std::string &s) {
     return Edge(NamedEnd, next, idx, s);
+  }
+  static Edge RepeatEdge(Node *next, size_t *repeat,
+                         std::function<void()> *initializer) {
+    return Edge(Repeat, next, repeat, initializer);
+  }
+  static Edge UpperEdge(Node *next, size_t *repeat, size_t num) {
+    return Edge(Upper, next, repeat, num);
   }
   Edge(const Edge &) = delete;
   Edge &operator=(const Edge &) = delete;
@@ -79,9 +89,16 @@ struct Edge {
       size_t idx;
     } store, store_end;
     struct {
+      size_t *val;
+    } repeat;
+    struct {
       size_t idx;
       char *name;
     } named, named_end;
+    struct {
+      size_t *repeat;
+      size_t num;
+    } bound;
   };
 
  private:
@@ -100,6 +117,15 @@ struct Edge {
       type(type), next(next), brake({pass}) {
     *initializer = [pass = pass]() {
       *pass = true;
+    };
+  }
+  Edge(Type type, Node *next, size_t *repeat, size_t num) :
+      type(type), next(next), bound({repeat, num}) {}
+  Edge(Type type, Node *next, size_t *repeat,
+       std::function<void()> *initializer) :
+      type(type), next(next), repeat({repeat}) {
+    *initializer = [repeat = repeat]() {
+      *repeat = 0;
     };
   }
 };
