@@ -66,27 +66,23 @@ Exp Exp::FromStr(const std::string &s) {
     }
     stack.push(id);
   };
+  enum Quantifier { Greedy, Possessive, Reluctant };
+  auto get_quantifier = [&s = s, &it = it]() -> Quantifier {
+    auto next(it + 1);
+    Quantifier q = Greedy;
+    if (next == s.end()) return q;
+    if (*next == Char::kPlus) {
+      q = Possessive;
+    } else if (*next == Char::kQuest) {
+      q = Reluctant;
+    } else {
+      return q;
+    }
+    it = next;
+    return q;
+  };
   for (; s.end() != it; ++it) {
     char op = *it;
-    enum { Greedy, Possessive, Reluctant } quantifier;
-    quantifier = Greedy;
-    switch (op) {
-      // set greedy or lazy mode
-      case Char::kMore:
-      case Char::kQuest: {
-        auto next(it + 1);
-        if (next == s.end()) break;
-        if (*next == Char::kPlus) {
-          it = next;
-          quantifier = Possessive;
-        } else if (*next == Char::kQuest) {
-          it = next;
-          quantifier = Reluctant;
-        }
-        break;
-      }
-      default: break;
-    }
     switch (op) {
       case Char::kAny: {
         vector.emplace_back(Id::Sym::Any);
@@ -105,7 +101,20 @@ Exp Exp::FromStr(const std::string &s) {
             upper_bound = upper_bound * 10 + *it - '0';
           }
         }
-        push_operator(Id::RepeatId(lower_bound, upper_bound));
+        switch (get_quantifier()) {
+          case Greedy:
+            push_operator(
+                Id::RepeatId(Id::Sym::Repeat, lower_bound, upper_bound));
+            break;
+          case Possessive:
+            push_operator(
+                Id::RepeatId(Id::Sym::PosRepeat, lower_bound, upper_bound));
+            break;
+          case Reluctant:
+            push_operator(
+                Id::RepeatId(Id::Sym::RelRepeat, lower_bound, upper_bound));
+            break;
+        }
         break;
       }
       case Char::kEither: {
@@ -151,7 +160,7 @@ Exp Exp::FromStr(const std::string &s) {
         break;
       }
       case Char::kMore: {
-        switch (quantifier) {
+        switch (get_quantifier()) {
           case Greedy:push_operator(Id(Id::Sym::More));
             break;
           case Possessive: push_operator(Id(Id::Sym::PosMore));
@@ -162,7 +171,7 @@ Exp Exp::FromStr(const std::string &s) {
         break;
       }
       case Char::kQuest: {
-        switch (quantifier) {
+        switch (get_quantifier()) {
           case Greedy: push_operator(Id(Id::Sym::Quest));
             break;
           case Possessive: push_operator(Id(Id::Sym::PosQuest));

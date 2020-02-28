@@ -33,7 +33,7 @@ struct Id {
       UnParen,  // "(?:"
       Plus, PosPlus, RelPlus,  // "+", "++", "+?"
       Quest, PosQuest, RelQuest,  // "?", "?+", "??"
-      Repeat  // "{m,n}"
+      Repeat, PosRepeat, RelRepeat  // "{m,n}", "{m,n}+", "{m,n}?"
     };
     explicit Sym(Sym::_Inner inner) : inner_(inner), order_(Order(inner)) {}
     bool operator==(Sym::_Inner inner) { return inner == inner_; }
@@ -62,8 +62,8 @@ struct Id {
   inline static Id ParenId(size_t idx) {
     return Id(Id::Sym::Paren, idx);
   }
-  inline static Id RepeatId(size_t lower, size_t upper) {
-    return Id(Id::Sym::Repeat, lower, upper);
+  inline static Id RepeatId(Sym::_Inner sym, size_t lower, size_t upper) {
+    return Id(sym, lower, upper);
   }
 
   explicit Id(Sym::_Inner sym) : sym(sym), ch() {}

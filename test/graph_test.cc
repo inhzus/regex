@@ -193,6 +193,7 @@ TEST_CASE("graph possessive quantifiers", "[graph]") {
   REQUIRE(graph.Match("aaab", nullptr));
 
   graph = CompileInfix("a?+a", "a?+a.");
+//  graph.DrawMermaid();
   REQUIRE_FALSE(graph.Match("a", nullptr));
   REQUIRE(graph.Match("aa", nullptr));
 }
