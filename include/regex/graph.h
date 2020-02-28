@@ -20,8 +20,8 @@ class Graph;
 
 struct Edge {
   enum Type {
-    Empty, Ahead, NegAhead, Any, Brake, Char, Epsilon, Lower, Store, StoreEnd,
-    Named, NamedEnd, Repeat, Upper
+    Empty, Ahead, NegAhead, Any, Brake, Char, Epsilon, Func, Lower, Store,
+    StoreEnd, Named, NamedEnd, Repeat, Upper
   };
 
   static Edge AheadEdge(Node *next, Graph *graph) {
@@ -39,9 +39,11 @@ struct Edge {
   static Edge EpsilonEdge(Node *next) {
     return Edge(Epsilon, next);
   }
-  static Edge BrakeEdge(
-      Node *next, bool *pass, std::function<void()> *initializer) {
-    return Edge(Brake, next, pass, initializer);
+  static Edge BrakeEdge(Node *next, bool *pass) {
+    return Edge(Brake, next, pass);
+  }
+  static Edge FuncEdge(Node *next, std::function<void()> *f) {
+    return Edge(Func, next, f);
   }
   static Edge LowerEdge(Node *next, size_t *repeat, size_t num) {
     return Edge(Lower, next, repeat, num);
@@ -58,9 +60,8 @@ struct Edge {
   static Edge NamedEndEdge(Node *next, size_t idx, const std::string &s) {
     return Edge(NamedEnd, next, idx, s);
   }
-  static Edge RepeatEdge(Node *next, size_t *repeat,
-                         std::function<void()> *initializer) {
-    return Edge(Repeat, next, repeat, initializer);
+  static Edge RepeatEdge(Node *next, size_t *repeat) {
+    return Edge(Repeat, next, repeat);
   }
   static Edge UpperEdge(Node *next, size_t *repeat, size_t num) {
     return Edge(Upper, next, repeat, num);
@@ -85,6 +86,9 @@ struct Edge {
     struct {
       bool *pass;
     } brake;
+    struct {
+      std::function<void()> *f;
+    } func;
     struct {
       size_t idx;
     } store, store_end;
@@ -113,21 +117,14 @@ struct Edge {
     named.name = new char[s.size() + 1];
     snprintf(named.name, s.size() + 1, "%s", s.c_str());
   }
-  Edge(Type type, Node *next, bool *pass, std::function<void()> *initializer) :
-      type(type), next(next), brake({pass}) {
-    *initializer = [pass = pass]() {
-      *pass = true;
-    };
-  }
+  Edge(Type type, Node *next, std::function<void()> *f) :
+      type(type), next(next), func({f}) {}
+  Edge(Type type, Node *next, bool *pass) :
+      type(type), next(next), brake({pass}) {}
   Edge(Type type, Node *next, size_t *repeat, size_t num) :
       type(type), next(next), bound({repeat, num}) {}
-  Edge(Type type, Node *next, size_t *repeat,
-       std::function<void()> *initializer) :
-      type(type), next(next), repeat({repeat}) {
-    *initializer = [repeat = repeat]() {
-      *repeat = 0;
-    };
-  }
+  Edge(Type type, Node *next, size_t *repeat) :
+      type(type), next(next), repeat({repeat}) {}
 };
 
 struct Node {
@@ -180,13 +177,10 @@ class Graph {
     group_num_ = graph.group_num_;
     seg_ = graph.seg_;
     nodes_ = std::move(graph.nodes_);
-    initializers_ = std::move(graph.initializers_);
     return *this;
   }
-  Graph(const Segment &seg, std::vector<Node *> &&nodes,
-        std::vector<std::function<void()>> &&initializers, size_t group_num) :
-      group_num_(group_num), seg_(seg), nodes_(nodes),
-      initializers_(initializers) {}
+  Graph(const Segment &seg, std::vector<Node *> &&nodes, size_t group_num) :
+      group_num_(group_num), seg_(seg), nodes_(nodes) {}
   ~Graph() { Deallocate(); }
 
   [[nodiscard]] int Match(const std::string &s) const;
@@ -200,7 +194,6 @@ class Graph {
   size_t group_num_;
   Segment seg_;
   std::vector<Node *> nodes_;
-  std::vector<std::function<void()>> initializers_;
 };
 
 }  // namespace regex
