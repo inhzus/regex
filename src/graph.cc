@@ -9,13 +9,20 @@
 #include <queue>
 #include <stack>
 #include <unordered_map>
-#include <regex/graph.h>
 
 namespace regex {
 
 Edge::Edge(Edge &&e) noexcept : type(e.type), next(e.next), named(e.named) {
   e.type = Empty;
   e.named = {};
+}
+
+Edge &Edge::operator=(Edge &&e) noexcept {
+  type = e.type;
+  next = e.next;
+  named = e.named;
+  e.type = Empty;
+  return *this;
 }
 
 Edge::~Edge() {
@@ -340,9 +347,10 @@ Graph Graph::Compile(Exp &&exp) {
           }
           default:
           case Id::Sym::PosQuest: {
-            //      |func-brake|
-            // start=0-->.-->loop=0-->|
-            //
+            //                        |   elem    |
+            //      |func-brake|      |-->0==>0-->|    |brake|
+            // start=0-->.-->loop=0-->|           |-->0-->.-->end=0
+            //                        |-->.-->.-->|
             auto loop = new Node(
                 Edge::EpsilonEdge(elem.start),
                 Edge::EpsilonEdge(end));
@@ -362,7 +370,9 @@ Graph Graph::Compile(Exp &&exp) {
         stack.push(Segment(start, end));
         break;
       }
-      case Id::Sym::Repeat: {
+      case Id::Sym::Repeat:
+      case Id::Sym::PosRepeat:
+      case Id::Sym::RelRepeat: {
         //                        Upper
         //                    |-->0==>0-->|
         //      |func-repeat| |  Repeat   |
@@ -392,6 +402,26 @@ Graph Graph::Compile(Exp &&exp) {
           loop->edges.push_back(Edge::LowerEdge(end, repeat, id.repeat.lower));
         } else {
           loop->edges.push_back(Edge::EpsilonEdge(end));
+        }
+        switch (static_cast<int>(id.sym)) {
+          default:
+          case Id::Sym::Repeat: {
+            break;
+          }
+          case Id::Sym::RelRepeat: {
+            std::reverse(loop->edges.begin(), loop->edges.end());
+            break;
+          }
+          case Id::Sym::PosRepeat: {
+            auto brake_end = new Node;
+            nodes.push_back(brake_end);
+            end->edges.push_back(Edge::BrakeEdge(brake_end, new bool));
+            start = new Node(
+                Edge::FuncEdge(start, new std::function<void()>(
+                    [b = end->edges[0].brake.pass]() { *b = true; })));
+            end = brake_end;
+            break;
+          }
         }
         stack.push(Segment(start, end));
         break;
@@ -585,17 +615,23 @@ void Graph::DrawMermaid() const {
           break;
         case Edge::NegAhead: s = "?!";
           break;
-        case Edge::Any: s = ".";
+        case Edge::Any: s = "any";
           break;
         case Edge::Brake: s = "brake";
           break;
-        case Edge::Char: s = edge.ch.val;
+        case Edge::Char: s = "char: " + std::string(1, edge.ch.val);
           break;
         case Edge::Func: s = "func";
+          break;
+        case Edge::Lower: s = "lower";
           break;
         case Edge::Store: s = "(" + std::to_string(edge.store.idx);
           break;
         case Edge::StoreEnd: s = std::to_string(edge.store.idx) + ")";
+          break;
+        case Edge::Repeat: s = "repeat";
+          break;
+        case Edge::Upper: s = "upper";
           break;
         default: break;
       }

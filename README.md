@@ -9,9 +9,9 @@
 - [x] verify: ".", "\\"
 - [x] grouping: (...), (?:...)
 - [x] (negative) look-ahead assertions: (?=...), (?!...)
-- [ ] token to mark greedy / reluctant / possessive
 - [x] possessive: "\*+", "?+"
-- [ ] {m, n}
+- [x] {m, n}
+- [ ] {m}
 - [ ] named group & back-reference: (?P\<name\>...), (?P=name) 
 - [ ] atomic group: (?>...)
 - [ ] bytecode virtual machine

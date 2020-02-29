@@ -69,7 +69,7 @@ struct Edge {
   Edge(const Edge &) = delete;
   Edge &operator=(const Edge &) = delete;
   Edge(Edge &&) noexcept;
-  Edge &operator=(Edge &&) = delete;
+  Edge &operator=(Edge &&) noexcept;
   ~Edge();
 
   [[nodiscard]] bool IsEpsilon() const { return Epsilon == type; }

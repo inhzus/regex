@@ -21,13 +21,13 @@ size_t Id::Sym::Order(Id::Sym::_Inner inner) {
   switch (inner) {
 //    case Paren:
 //    case ParenEnd:return 4;
-    case More:
-    case PosMore:
-    case RelMore:
-    case Quest:
-    case PosQuest:
-    case RelQuest:
-    case Repeat: return 5;
+//    case More:
+//    case PosMore:
+//    case RelMore:
+//    case Quest:
+//    case PosQuest:
+//    case RelQuest:
+//    case Repeat: return 5;
     case Concat:return 6;
     case Either:return 8;
     default:return 0;
@@ -51,7 +51,9 @@ Exp Exp::FromStr(const std::string &s) {
       case Id::Sym::Quest:
       case Id::Sym::PosQuest:
       case Id::Sym::RelQuest:
-      case Id::Sym::Repeat: vector.push_back(id);
+      case Id::Sym::Repeat:
+      case Id::Sym::PosRepeat:
+      case Id::Sym::RelRepeat: vector.push_back(id);
         return;
     }
     while (!stack.empty()) {

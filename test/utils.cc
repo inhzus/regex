@@ -42,7 +42,9 @@ std::string IdsToStr(const std::vector<Id> &vector) {
         break;
       case Id::Sym::RelQuest: s += "??";
         break;
-      case Id::Sym::Repeat: {
+      case Id::Sym::Repeat:
+      case Id::Sym::PosRepeat:
+      case Id::Sym::RelRepeat: {
         s.push_back('{');
         if (id.repeat.lower != 0) {
           s += std::to_string(id.repeat.lower);
@@ -52,6 +54,13 @@ std::string IdsToStr(const std::vector<Id> &vector) {
           s += std::to_string(id.repeat.upper);
         }
         s.push_back('}');
+        switch (static_cast<int>(id.sym)) {
+          case Id::Sym::PosRepeat:s.push_back('+');
+            break;
+          case Id::Sym::RelRepeat:s.push_back('?');
+            break;
+          default: break;
+        }
         break;
       }
       default:assert(false);

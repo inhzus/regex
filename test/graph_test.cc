@@ -213,4 +213,10 @@ TEST_CASE("graph {m,n}", "[graph]") {
   graph = CompileInfix("a{1,}b", "a{1,}b.");
   REQUIRE(-1 == graph.Match("b"));
   REQUIRE(2 == graph.Match("ab"));
+
+  graph = CompileInfix("a{,1}+a", "a{,1}+a.");
+  REQUIRE(-1 == graph.Match("a"));
+
+  graph = CompileInfix("a{,1}?a", "a{,1}?a.");
+  REQUIRE(1 == graph.Match("aa"));
 }
