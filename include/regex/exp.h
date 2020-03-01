@@ -11,11 +11,13 @@
 
 namespace regex {
 
-struct Char {
-  static const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
-      kBackslash = '\\', kBrace = '{', kBraceEnd = '}', kBraceSplit = ',',
-      kConcat = '.', kEither = '|', kMore = '*', kParen = '(', kParenEnd = ')',
-      kParenFLag = '?', kPlus = '+', kQuest = '?', kUnParenFlag = ':';
+namespace ch {
+static const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
+    kBackslash = '\\', kBrace = '{', kBraceEnd = '}', kBraceSplit = ',',
+    kConcat = '.', kEither = '|', kMore = '*', kNamedFlag = 'P',
+    kNEqualFlag = '=', kNLeftFlag = '<', kNRightFlag = '>', kParen = '(',
+    kParenEnd = ')', kParenFLag = '?', kPlus = '+', kQuest = '?',
+    kUnParenFlag = ':';
 };
 
 struct Id {
@@ -29,11 +31,12 @@ struct Id {
       Concat,  // concatenate characters
       Either,  // "|"
       More, RelMore, PosMore,  // "*", "*+", "*?"
-      NamedPr,
+      NamedPr,  // "(?P<name>...)"
       Paren, ParenEnd,  // "(", ")"
       UnParen,  // "(?:"
       Plus, PosPlus, RelPlus,  // "+", "++", "+?"
       Quest, PosQuest, RelQuest,  // "?", "?+", "??"
+      RefPr,  // "(?P=name)"
       Repeat, PosRepeat, RelRepeat  // "{m,n}", "{m,n}+", "{m,n}?"
     };
     explicit Sym(Sym::_Inner inner) : inner_(inner), order_(Order(inner)) {}
@@ -60,11 +63,17 @@ struct Id {
     size_t order_;
   };
 
+  inline static Id NamedId(size_t idx, std::string_view view) {
+    return Id(Id::Sym::NamedPr, idx, view);
+  }
   inline static Id ParenId(size_t idx) {
     return Id(Id::Sym::Paren, idx);
   }
   inline static Id RepeatId(Sym::_Inner sym, size_t lower, size_t upper) {
     return Id(sym, lower, upper);
+  }
+  inline static Id RefId(size_t idx) {
+    return Id(Id::Sym::RefPr, idx);
   }
 
   explicit Id(Sym::_Inner sym) : sym(sym), ch() {}
@@ -75,7 +84,11 @@ struct Id {
     char ch;
     struct {
       size_t idx;
-    } store;
+    } ref, store;
+    struct {
+      size_t idx;
+      char *name;
+    } named;
     struct {
       size_t lower;
       size_t upper;
@@ -86,6 +99,11 @@ struct Id {
   Id(Sym::_Inner sym, size_t idx) : sym(sym), store({idx}) {}
   Id(Sym::_Inner sym, size_t lower, size_t upper) :
       sym(sym), repeat({lower, upper}) {}
+  Id(Sym::_Inner sym, size_t idx, std::string_view view) :
+      sym(sym), named({idx, nullptr}) {
+    named.name = new char[view.size() + 1];
+    snprintf(named.name, view.size() + 1, "%s", view.data());
+  }
 };
 
 struct Exp {

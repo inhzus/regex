@@ -40,6 +40,7 @@ Exp Exp::FromStr(const std::string &s) {
   std::string::const_iterator it(s.begin());
   std::stack<Id, std::vector<Id>> stack;
   std::stack<bool, std::vector<bool>> concat_stack;
+  std::vector<std::pair<char *, size_t>> named;
   concat_stack.push(false);
   size_t store_idx = 1;
   auto push_operator = [&vector = vector, &stack = stack](Id id) {
@@ -73,9 +74,9 @@ Exp Exp::FromStr(const std::string &s) {
     auto next(it + 1);
     Quantifier q = Greedy;
     if (next == s.end()) return q;
-    if (*next == Char::kPlus) {
+    if (*next == ch::kPlus) {
       q = Possessive;
-    } else if (*next == Char::kQuest) {
+    } else if (*next == ch::kQuest) {
       q = Reluctant;
     } else {
       return q;
@@ -86,21 +87,21 @@ Exp Exp::FromStr(const std::string &s) {
   for (; s.end() != it; ++it) {
     char op = *it;
     switch (op) {
-      case Char::kAny: {
+      case ch::kAny: {
         vector.emplace_back(Id::Sym::Any);
         break;
       }
-      case Char::kBrace: {
+      case ch::kBrace: {
         size_t lower_bound = 0, upper_bound = 0;
-        for (++it; *it != Char::kBraceSplit && *it != Char::kBraceEnd; ++it) {
+        for (++it; *it != ch::kBraceSplit && *it != ch::kBraceEnd; ++it) {
           lower_bound = lower_bound * 10 + *it - '0';
         }
-        if (*it == Char::kBraceEnd) {
+        if (*it == ch::kBraceEnd) {
           upper_bound = lower_bound;
-        } else if (++it; *it == Char::kBraceEnd) {
+        } else if (++it; *it == ch::kBraceEnd) {
           upper_bound = std::numeric_limits<size_t>::max();
         } else {
-          for (; *it != Char::kBraceEnd; ++it) {
+          for (; *it != ch::kBraceEnd; ++it) {
             upper_bound = upper_bound * 10 + *it - '0';
           }
         }
@@ -120,28 +121,53 @@ Exp Exp::FromStr(const std::string &s) {
         }
         break;
       }
-      case Char::kEither: {
+      case ch::kEither: {
         push_operator(Id(Id::Sym::Either));
         break;
       }
-      case Char::kParen: {
+      case ch::kParen: {
         auto quest(it + 1);
-        if (quest == s.end() || *quest != Char::kParenFLag) {
+        if (quest == s.end() || *quest != ch::kParenFLag) {
           stack.push(Id::ParenId(store_idx++));
           break;
         }
         auto flag(quest + 1);
         if (flag == s.end()) break;  // grammar error
         switch (*flag) {
-          case Char::kAheadFlag: {
+          case ch::kAheadFlag: {
             stack.push(Id(Id::Sym::AheadPr));
             break;
           }
-          case Char::kNegAheadFlag: {
+          case ch::kNegAheadFlag: {
             stack.push(Id(Id::Sym::NegAheadPr));
             break;
           }
-          case Char::kUnParenFlag: {
+          case ch::kNamedFlag: {
+            ++flag;  // *flag == '<' or '='
+            if (*flag == ch::kNLeftFlag) {
+              std::string::const_iterator left = ++flag;
+              for (; *flag != ch::kNRightFlag; ++flag) {}
+              stack.push(Id::NamedId(
+                  store_idx++, std::string_view(&*left, flag - left)));
+              named.emplace_back(
+                  stack.top().named.name, stack.top().named.idx);
+            } else if (*flag == ch::kNEqualFlag) {
+              std::string::const_iterator left = ++flag;
+              for (; *flag != ch::kParenEnd; ++flag) {}
+              std::string_view view(&*left, flag - left);
+              --flag;  // step back to the character before ')'
+              auto find = std::find_if(
+                  named.begin(), named.end(), [&view = view](auto &pair) {
+                    return view == pair.first;
+                  });
+              assert(find != named.end());
+              stack.push(Id::RefId(find->second));
+            } else {
+              assert(false);
+            }
+            break;
+          }
+          case ch::kUnParenFlag: {
             stack.push(Id(Id::Sym::UnParen));
             break;
           }
@@ -150,7 +176,7 @@ Exp Exp::FromStr(const std::string &s) {
         it = flag;
         break;
       }
-      case Char::kParenEnd: {
+      case ch::kParenEnd: {
         while (true) {
           assert(!stack.empty());
           Id id = stack.top();
@@ -162,7 +188,7 @@ Exp Exp::FromStr(const std::string &s) {
         }
         break;
       }
-      case Char::kMore: {
+      case ch::kMore: {
         switch (get_quantifier()) {
           case Greedy:push_operator(Id(Id::Sym::More));
             break;
@@ -173,7 +199,7 @@ Exp Exp::FromStr(const std::string &s) {
         }
         break;
       }
-      case Char::kQuest: {
+      case ch::kQuest: {
         switch (get_quantifier()) {
           case Greedy: push_operator(Id(Id::Sym::Quest));
             break;
@@ -184,7 +210,7 @@ Exp Exp::FromStr(const std::string &s) {
         }
         break;
       }
-      case Char::kBackslash: {
+      case ch::kBackslash: {
         // attention to order of precedence for regex operators
         ++it;
         FALL_THROUGH;
@@ -195,15 +221,15 @@ Exp Exp::FromStr(const std::string &s) {
       }
     }
     switch (op) {
-      case Char::kEither: {
+      case ch::kEither: {
         concat_stack.top() = false;
         break;
       }
-      case Char::kParen: {
+      case ch::kParen: {
         concat_stack.push(false);
         break;
       }
-      case Char::kParenEnd: {
+      case ch::kParenEnd: {
         concat_stack.pop();
 //        bool group_ignored = stack.top().sym.IsIgnored();
 //        if (concat_stack.top() && !group_ignored) {
@@ -214,13 +240,13 @@ Exp Exp::FromStr(const std::string &s) {
         concat_stack.top() = true;
         break;
       }
-      case Char::kMore:
-      case Char::kQuest:
-      case Char::kBrace: {
+      case ch::kMore:
+      case ch::kQuest:
+      case ch::kBrace: {
         break;
       }
-      case Char::kAny:
-      case Char::kBackslash:
+      case ch::kAny:
+      case ch::kBackslash:
       default: {
         if (concat_stack.top()) {
           push_operator(Id(Id::Sym::Concat));

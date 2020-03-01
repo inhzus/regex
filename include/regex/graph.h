@@ -54,11 +54,11 @@ struct Edge {
   static Edge StoreEndEdge(Node *next, size_t idx) {
     return Edge(StoreEnd, next, idx);
   }
-  static Edge NamedEdge(Node *next, size_t idx, const std::string &s) {
-    return Edge(Named, next, idx, s);
+  static Edge NamedEdge(Node *next, size_t idx, char *str) {
+    return Edge(Named, next, idx, str);
   }
-  static Edge NamedEndEdge(Node *next, size_t idx, const std::string &s) {
-    return Edge(NamedEnd, next, idx, s);
+  static Edge NamedEndEdge(Node *next, size_t idx, char *str) {
+    return Edge(NamedEnd, next, idx, str);
   }
   static Edge RepeatEdge(Node *next, size_t *repeat) {
     return Edge(Repeat, next, repeat);
@@ -112,10 +112,9 @@ struct Edge {
       type(type), next(next), ahead({graph}) {}
   Edge(Type type, Node *next, size_t idx) :
       type(type), next(next), store({idx}) {}
-  Edge(Type type, Node *next, size_t idx, const std::string &s) :
+  Edge(Type type, Node *next, size_t idx, char *str) :
       type(type), next(next), named({idx, nullptr}) {
-    named.name = new char[s.size() + 1];
-    snprintf(named.name, s.size() + 1, "%s", s.c_str());
+    named.name = str;
   }
   Edge(Type type, Node *next, std::function<void()> *f) :
       type(type), next(next), func({f}) {}

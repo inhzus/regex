@@ -34,8 +34,7 @@ Edge::~Edge() {
       break;
     case Func: delete func.f;
       break;
-    case Named:
-    case NamedEnd: delete named.name;
+    case Named: delete named.name;
       break;
     case Repeat: delete bound.repeat;
       break;
@@ -72,12 +71,12 @@ Graph Graph::CompilePostfix(const std::string &s) {
 //  for (char ch : s) {
     bool greedy = true;
     switch (ch) {
-      case Char::kMore:
-      case Char::kPlus:
-      case Char::kQuest: {
+      case ch::kMore:
+      case ch::kPlus:
+      case ch::kQuest: {
         // lazy mode: *?, +?, ??
         auto next(sit + 1);
-        if (next != s.end() && *next == Char::kQuest) {
+        if (next != s.end() && *next == ch::kQuest) {
           ++sit;
           greedy = false;
         }
@@ -86,7 +85,7 @@ Graph Graph::CompilePostfix(const std::string &s) {
       default: break;
     }
     switch (ch) {
-      case Char::kConcat: {
+      case ch::kConcat: {
         //      | left | right |
         // start=0==>0-->0==>end=0
         Segment back(stack.top());
@@ -96,7 +95,7 @@ Graph Graph::CompilePostfix(const std::string &s) {
         front.end = back.end;
         break;
       }
-      case Char::kEither: {
+      case ch::kEither: {
         //       |   left    |
         //       |-->0==>0-->|
         // start=0       end=0
@@ -117,7 +116,7 @@ Graph Graph::CompilePostfix(const std::string &s) {
         stack.push(Segment(start, end));
         break;
       }
-      case Char::kMore: {
+      case ch::kMore: {
         //       |-->0==>0-->|
         // start=0<--.<--.<--|   |-->end=0
         //       |-->.-->.-->.-->|
@@ -138,10 +137,10 @@ Graph Graph::CompilePostfix(const std::string &s) {
         stack.push(Segment(start, end));
         break;
       }
-      case Char::kPlus: {
+      case ch::kPlus: {
         break;
       }
-      case Char::kQuest: {
+      case ch::kQuest: {
         //       |   elem    |
         //       |-->0==>0-->|
         // start=0       end=0
@@ -301,6 +300,19 @@ Graph Graph::Compile(Exp &&exp) {
         }
         nodes.push_back(start);
         elem.end->edges.push_back(Edge::EpsilonEdge(start));
+        stack.push(Segment(start, end));
+        break;
+      }
+      case Id::Sym::NamedPr: {
+        Segment elem(stack.top());
+        stack.pop();
+        auto end = new Node;
+        nodes.push_back(end);
+        auto start = new Node(
+            Edge::NamedEdge(elem.start, id.named.idx, id.named.name));
+        nodes.push_back(start);
+        elem.end->edges.push_back(
+            Edge::NamedEndEdge(end, id.named.idx, id.named.name));
         stack.push(Segment(start, end));
         break;
       }
@@ -534,6 +546,14 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
         if (*edge.bound.repeat < edge.bound.num) {
           backtrack = true;
         }
+        break;
+      }
+      case Edge::Named: {
+        boundary[edge.named.idx].first = cur.it;
+        break;
+      }
+      case Edge::NamedEnd: {
+        boundary[edge.named_end.idx].second = cur.it;
         break;
       }
       case Edge::Store: {

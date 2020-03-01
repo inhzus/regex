@@ -225,3 +225,11 @@ TEST_CASE("graph {m,n}", "[graph]") {
   REQUIRE(2 == graph.Match("aa"));
   REQUIRE(2 == graph.Match("aaa"));
 }
+
+TEST_CASE("graph back referencing", "[graph]") {
+  auto graph = CompileInfix("a(?P<b>b)(?P<c>b|c)", "ab(<b>bc|(<c>..");
+  std::vector<std::string> groups;
+  REQUIRE(graph.Match("abc", &groups));
+  REQUIRE("b" == groups[1]);
+  REQUIRE("c" == groups[2]);
+}
