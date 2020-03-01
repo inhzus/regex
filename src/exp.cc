@@ -92,11 +92,12 @@ Exp Exp::FromStr(const std::string &s) {
       }
       case Char::kBrace: {
         size_t lower_bound = 0, upper_bound = 0;
-        for (++it; *it != Char::kBraceSplit; ++it) {
+        for (++it; *it != Char::kBraceSplit && *it != Char::kBraceEnd; ++it) {
           lower_bound = lower_bound * 10 + *it - '0';
         }
-        ++it;
         if (*it == Char::kBraceEnd) {
+          upper_bound = lower_bound;
+        } else if (++it; *it == Char::kBraceEnd) {
           upper_bound = std::numeric_limits<size_t>::max();
         } else {
           for (; *it != Char::kBraceEnd; ++it) {

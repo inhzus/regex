@@ -29,6 +29,7 @@ struct Id {
       Concat,  // concatenate characters
       Either,  // "|"
       More, RelMore, PosMore,  // "*", "*+", "*?"
+      NamedPr,
       Paren, ParenEnd,  // "(", ")"
       UnParen,  // "(?:"
       Plus, PosPlus, RelPlus,  // "+", "++", "+?"
@@ -47,7 +48,7 @@ struct Id {
     }
     [[nodiscard]] bool IsOperator() const { return !IsOperand(); }
     [[nodiscard]] bool IsParen() const {
-      return inner_ == Paren || inner_ == UnParen
+      return inner_ == Paren || inner_ == UnParen || inner_ == NamedPr
           || inner_ == AheadPr || inner_ == NegAheadPr;
     }
     [[nodiscard]] size_t order() const { return order_; }

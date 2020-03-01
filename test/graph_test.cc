@@ -219,4 +219,9 @@ TEST_CASE("graph {m,n}", "[graph]") {
 
   graph = CompileInfix("a{,1}?a", "a{,1}?a.");
   REQUIRE(1 == graph.Match("aa"));
+
+  graph = CompileInfix("a{2}", "a{2,2}");
+  REQUIRE(-1 == graph.Match("a"));
+  REQUIRE(2 == graph.Match("aa"));
+  REQUIRE(2 == graph.Match("aaa"));
 }

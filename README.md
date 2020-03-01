@@ -11,8 +11,7 @@
 - [x] (negative) look-ahead assertions: (?=...), (?!...)
 - [x] possessive: "\*+", "?+"
 - [x] {m, n}
-- [ ] {m}
 - [ ] named group & back-reference: (?P\<name\>...), (?P=name) 
 - [ ] atomic group: (?>...)
+- [ ] character range
 - [ ] bytecode virtual machine
-
