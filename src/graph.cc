@@ -382,6 +382,14 @@ Graph Graph::Compile(Exp &&exp) {
         stack.push(Segment(start, end));
         break;
       }
+      case Id::Sym::RefPr: {
+        auto end = new Node;
+        nodes.push_back(end);
+        auto start = new Node(Edge::RefEdge(end, id.ref.idx));
+        nodes.push_back(start);
+        stack.push(Segment(start, end));
+        break;
+      }
       case Id::Sym::Repeat:
       case Id::Sym::PosRepeat:
       case Id::Sym::RelRepeat: {
@@ -564,6 +572,23 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
         boundary[edge.store_end.idx].second = cur.it;
         break;
       }
+      case Edge::Ref: {
+        auto &pair = boundary[edge.ref.idx];
+        std::string_view view(&*pair.first, pair.second - pair.first);
+        auto p = cur.it;
+        auto vit = view.begin();
+        for (; vit != view.end(); ++vit, ++p) {
+          if (*p != *vit) {
+            backtrack = true;
+            break;
+          }
+        }
+        if (!backtrack) {
+          assert(vit == view.end());
+          cur.it = p;
+        }
+        break;
+      }
       case Edge::Repeat: {
         ++*edge.repeat.val;
         break;
@@ -644,6 +669,12 @@ void Graph::DrawMermaid() const {
         case Edge::Func: s = "func";
           break;
         case Edge::Lower: s = "lower";
+          break;
+        case Edge::Named: s = "<" + std::to_string(edge.named.idx);
+          break;
+        case Edge::NamedEnd: s = std::to_string(edge.named_end.idx) + ">";
+          break;
+        case Edge::Ref: s = "<" + std::to_string(edge.ref.idx) + ">";
           break;
         case Edge::Store: s = "(" + std::to_string(edge.store.idx);
           break;

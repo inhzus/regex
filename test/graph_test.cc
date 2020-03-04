@@ -227,9 +227,15 @@ TEST_CASE("graph {m,n}", "[graph]") {
 }
 
 TEST_CASE("graph back referencing", "[graph]") {
-  auto graph = CompileInfix("a(?P<b>b)(?P<c>b|c)", "ab(<b>bc|(<c>..");
-  std::vector<std::string> groups;
-  REQUIRE(graph.Match("abc", &groups));
-  REQUIRE("b" == groups[1]);
-  REQUIRE("c" == groups[2]);
+//  auto graph = CompileInfix("a(?P<b>b)(?P<c>b|c)", "ab(<b>bc|(<c>..");
+//  std::vector<std::string> groups;
+//  REQUIRE(graph.Match("abc", &groups));
+//  REQUIRE("b" == groups[1]);
+//  REQUIRE("c" == groups[2]);
+
+  auto graph = CompileInfix("(?P<a>b|c)(?P=a)d", "bc|(<a><1>d..");
+//  graph.DrawMermaid();
+  REQUIRE(-1 == graph.Match("bcd"));
+  REQUIRE(3 == graph.Match("bbd"));
+  REQUIRE(3 == graph.Match("ccd"));
 }

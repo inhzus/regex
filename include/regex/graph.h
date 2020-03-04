@@ -21,7 +21,7 @@ class Graph;
 struct Edge {
   enum Type {
     Empty, Ahead, NegAhead, Any, Brake, Char, Epsilon, Func, Lower, Store,
-    StoreEnd, Named, NamedEnd, Repeat, Upper
+    StoreEnd, Named, NamedEnd, Ref, Repeat, Upper
   };
 
   static Edge AheadEdge(Node *next, Graph *graph) {
@@ -47,6 +47,9 @@ struct Edge {
   }
   static Edge LowerEdge(Node *next, size_t *repeat, size_t num) {
     return Edge(Lower, next, repeat, num);
+  }
+  static Edge RefEdge(Node *next, size_t idx) {
+    return Edge(Ref, next, idx);
   }
   static Edge StoreEdge(Node *next, size_t idx) {
     return Edge(Store, next, idx);
@@ -91,7 +94,7 @@ struct Edge {
     } func;
     struct {
       size_t idx;
-    } store, store_end;
+    } ref, store, store_end;
     struct {
       size_t *val;
     } repeat;

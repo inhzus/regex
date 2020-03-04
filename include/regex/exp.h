@@ -52,7 +52,7 @@ struct Id {
     [[nodiscard]] bool IsOperator() const { return !IsOperand(); }
     [[nodiscard]] bool IsParen() const {
       return inner_ == Paren || inner_ == UnParen || inner_ == NamedPr
-          || inner_ == AheadPr || inner_ == NegAheadPr;
+          || inner_ == AheadPr || inner_ == NegAheadPr || inner_ == RefPr;
     }
     [[nodiscard]] size_t order() const { return order_; }
 
