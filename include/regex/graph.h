@@ -10,6 +10,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <unordered_map>
 
 #include "regex/exp.h"
 
@@ -57,11 +58,11 @@ struct Edge {
   static Edge StoreEndEdge(Node *next, size_t idx) {
     return Edge(StoreEnd, next, idx);
   }
-  static Edge NamedEdge(Node *next, size_t idx, char *str) {
-    return Edge(Named, next, idx, str);
+  static Edge NamedEdge(Node *next, size_t idx) {
+    return Edge(Named, next, idx);
   }
-  static Edge NamedEndEdge(Node *next, size_t idx, char *str) {
-    return Edge(NamedEnd, next, idx, str);
+  static Edge NamedEndEdge(Node *next, size_t idx) {
+    return Edge(NamedEnd, next, idx);
   }
   static Edge RepeatEdge(Node *next, size_t *repeat) {
     return Edge(Repeat, next, repeat);
@@ -94,14 +95,10 @@ struct Edge {
     } func;
     struct {
       size_t idx;
-    } ref, store, store_end;
+    } ref, store, store_end, named, named_end;
     struct {
       size_t *val;
     } repeat;
-    struct {
-      size_t idx;
-      char *name;
-    } named, named_end;
     struct {
       size_t *repeat;
       size_t num;
@@ -115,10 +112,6 @@ struct Edge {
       type(type), next(next), ahead({graph}) {}
   Edge(Type type, Node *next, size_t idx) :
       type(type), next(next), store({idx}) {}
-  Edge(Type type, Node *next, size_t idx, char *str) :
-      type(type), next(next), named({idx, nullptr}) {
-    named.name = str;
-  }
   Edge(Type type, Node *next, std::function<void()> *f) :
       type(type), next(next), func({f}) {}
   Edge(Type type, Node *next, bool *pass) :
@@ -142,14 +135,6 @@ struct Node {
     edges.push_back(std::move(e1));
     edges.push_back(std::move(e2));
   }
-//  explicit Node(std::vector<Edge> &&edges) :
-//      status(Default), edges(std::move(edges)) {}
-//  Node(Status status, std::vector<Edge> edges) :
-//      status(status), edges(std::move(edges)) {}
-
-//  static Node MatchNode() {
-//    return Node(Match, std::vector<Edge>());
-//  }
 
   [[nodiscard]] bool WillMatch() const;
 
@@ -163,6 +148,27 @@ struct Segment {
 
   Node *start;
   Node *end;
+};
+
+class Matcher {
+ public:
+  friend class Graph;
+  Matcher(size_t group_num,
+          std::unordered_map<std::string, size_t> named_group) :
+      ok_(false), groups_(group_num, std::string()),
+      named_groups_(std::move(named_group)) {}
+
+  [[nodiscard]] const std::string &
+  group(size_t idx) const { return groups_[idx]; }
+
+  [[nodiscard]] bool ok() const { return ok_; }
+  [[nodiscard]] const std::vector<std::string> &
+  groups() const { return groups_; }
+
+ private:
+  bool ok_;
+  std::vector<std::string> groups_;
+  std::unordered_map<std::string, size_t> named_groups_;
 };
 
 class Graph {
@@ -179,15 +185,20 @@ class Graph {
     group_num_ = graph.group_num_;
     seg_ = graph.seg_;
     nodes_ = std::move(graph.nodes_);
+    named_group_ = std::move(graph.named_group_);
     return *this;
   }
-  Graph(const Segment &seg, std::vector<Node *> &&nodes, size_t group_num) :
-      group_num_(group_num), seg_(seg), nodes_(nodes) {}
+  Graph(size_t group_num, const Segment &seg, std::vector<Node *> &&nodes,
+        std::unordered_map<std::string, size_t> named_group) :
+      group_num_(group_num), seg_(seg), nodes_(std::move(nodes)),
+      named_group_(std::move(named_group)) {}
   ~Graph() { Deallocate(); }
 
-  [[nodiscard]] int Match(const std::string &s) const;
-  [[nodiscard]] int
-  Match(const std::string &s, std::vector<std::string> *groups) const;
+  [[nodiscard]] int MatchLen(const std::string &s) const;
+  [[nodiscard]] bool
+  MatchGroups(const std::string &s, std::vector<std::string> *groups) const;
+  void Match(const std::string &s, Matcher *matcher) const;
+  Matcher Match(const std::string &s) const;
   void DrawMermaid() const;
 
  private:
@@ -196,6 +207,7 @@ class Graph {
   size_t group_num_;
   Segment seg_;
   std::vector<Node *> nodes_;
+  std::unordered_map<std::string, size_t> named_group_;
 };
 
 }  // namespace regex

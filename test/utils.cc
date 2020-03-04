@@ -27,9 +27,7 @@ std::string IdsToStr(const std::vector<Id> &vector) {
         break;
       case Id::Sym::More: s.push_back('*');
         break;
-      case Id::Sym::NamedPr: s += "(<";
-        s += id.named.name;
-        s += '>';
+      case Id::Sym::NamedPr: s += "(<>";
         break;
       case Id::Sym::PosMore: s += "*+";
         break;

@@ -40,7 +40,7 @@ Exp Exp::FromStr(const std::string &s) {
   std::string::const_iterator it(s.begin());
   std::stack<Id, std::vector<Id>> stack;
   std::stack<bool, std::vector<bool>> concat_stack;
-  std::vector<std::pair<char *, size_t>> named;
+  std::unordered_map<std::string, size_t> named;
   concat_stack.push(false);
   size_t store_idx = 1;
   auto push_operator = [&vector = vector, &stack = stack](Id id) {
@@ -147,21 +147,15 @@ Exp Exp::FromStr(const std::string &s) {
             if (*flag == ch::kNLeftFlag) {
               std::string::const_iterator left = ++flag;
               for (; *flag != ch::kNRightFlag; ++flag) {}
-              stack.push(Id::NamedId(
-                  store_idx++, std::string_view(&*left, flag - left)));
-              named.emplace_back(
-                  stack.top().named.name, stack.top().named.idx);
+              named[std::string(left, flag)] = store_idx;
+              stack.push(Id::NamedId(store_idx++));
             } else if (*flag == ch::kNEqualFlag) {
               std::string::const_iterator left = ++flag;
               for (; *flag != ch::kParenEnd; ++flag) {}
-              std::string_view view(&*left, flag - left);
-              --flag;  // step back to the character before ')'
-              auto find = std::find_if(
-                  named.begin(), named.end(), [&view = view](auto &pair) {
-                    return view == pair.first;
-                  });
+              auto find = named.find(std::string(left, flag));
               assert(find != named.end());
               stack.push(Id::RefId(find->second));
+              --flag;  // step back to the character before ')'
             } else {
               assert(false);
             }
@@ -260,7 +254,7 @@ Exp Exp::FromStr(const std::string &s) {
     vector.push_back(stack.top());
     stack.pop();
   }
-  return {std::move(vector), store_idx};
+  return {store_idx, std::move(vector), std::move(named)};
 }
 
 }  // namespace regex

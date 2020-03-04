@@ -12,9 +12,9 @@
 
 namespace regex {
 
-Edge::Edge(Edge &&e) noexcept : type(e.type), next(e.next), named(e.named) {
+Edge::Edge(Edge &&e) noexcept : type(e.type), next(e.next), bound(e.bound) {
   e.type = Empty;
-  e.named = {};
+  e.bound = {};
 }
 
 Edge &Edge::operator=(Edge &&e) noexcept {
@@ -33,8 +33,6 @@ Edge::~Edge() {
     case Brake: delete brake.pass;
       break;
     case Func: delete func.f;
-      break;
-    case Named: delete named.name;
       break;
     case Repeat: delete bound.repeat;
       break;
@@ -178,7 +176,7 @@ Graph Graph::CompilePostfix(const std::string &s) {
   assert(stack.size() == 1);
   Segment &seg(stack.top());
   seg.end->status = Node::Match;
-  return Graph(seg, std::move(nodes), 1);
+  return Graph(1, seg, std::move(nodes), {});
 }
 Graph Graph::Compile(const std::string &s) {
   return Compile(Exp::FromStr(s));
@@ -201,7 +199,7 @@ Graph Graph::Compile(Exp &&exp) {
         Segment seg(stack.top());
         stack.pop();
         seg.end->status = Node::Match;
-        auto *sub_graph = new Graph(seg, {}, exp.group_num);
+        auto *sub_graph = new Graph(exp.group_num, seg, {}, exp.named_group);
         auto end = new Node;
         nodes.push_back(end);
         Node *start;
@@ -308,11 +306,9 @@ Graph Graph::Compile(Exp &&exp) {
         stack.pop();
         auto end = new Node;
         nodes.push_back(end);
-        auto start = new Node(
-            Edge::NamedEdge(elem.start, id.named.idx, id.named.name));
+        auto start = new Node(Edge::NamedEdge(elem.start, id.named.idx));
         nodes.push_back(start);
-        elem.end->edges.push_back(
-            Edge::NamedEndEdge(end, id.named.idx, id.named.name));
+        elem.end->edges.push_back(Edge::NamedEndEdge(end, id.named.idx));
         stack.push(Segment(start, end));
         break;
       }
@@ -455,15 +451,24 @@ Graph Graph::Compile(Exp &&exp) {
   assert(stack.size() == 1);
   Segment &seg(stack.top());
   seg.end->status = Node::Match;
-  return Graph(seg, std::move(nodes), exp.group_num);
+  return Graph(exp.group_num, seg, std::move(nodes),
+               std::move(exp.named_group));
 }
 
-int Graph::Match(const std::string &s) const {
+int Graph::MatchLen(const std::string &s) const {
   std::vector<std::string> groups;
-  if (!Match(s, &groups)) return -1;
+  if (!MatchGroups(s, &groups)) return -1;
   return groups[0].size();
 }
-int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
+bool Graph::MatchGroups(
+    const std::string &s, std::vector<std::string> *groups) const {
+  Matcher matcher = Match(s);
+  if (groups != nullptr)
+    *groups = matcher.groups_;
+  return matcher.ok();
+}
+
+void Graph::Match(const std::string &s, Matcher *matcher) const {
   struct Pos {
     std::string::const_iterator it;
     Node *node;
@@ -478,7 +483,6 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
   std::vector<std::pair<
       std::string::const_iterator, std::string::const_iterator>>
       boundary(group_num_, {cur.it, cur.it});
-  bool match_str;
 
   while (true) {
     // set backtrack false
@@ -495,26 +499,17 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
     //   go dig children
     bool backtrack = false;
     auto &edge = cur.node->edges[cur.idx];
-//    if (cur.it == s.end()) {
-//      if (cur.node->WillMatch()) {
-//        boundary[0].second = s.end();
-//        match_str = true;
-//        goto finally;
-//      } else {
-//        backtrack = true;
-//      }
-//    } else {
     switch (edge.type) {
       case Edge::Ahead: {
-        if (!edge.ahead.graph->Match(
-            std::string(cur.it, s.end()), groups)) {
+        edge.ahead.graph->Match(std::string(cur.it, s.end()), matcher);
+        if (!matcher->ok()) {
           backtrack = true;
         }
         break;
       }
       case Edge::NegAhead: {
-        if (edge.neg_ahead.graph->Match(
-            std::string(cur.it, s.end()), groups)) {
+        edge.ahead.graph->Match(std::string(cur.it, s.end()), matcher);
+        if (matcher->ok()) {
           backtrack = true;
         }
         break;
@@ -607,7 +602,7 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
       while (true) {
         if (++cur.idx < cur.node->edges.size()) break;
         if (stack.empty()) {
-          match_str = false;
+          matcher->ok_ = false;
           goto finally;
         }
         cur = stack.top();
@@ -616,7 +611,7 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
     } else {
       auto *next = edge.next;
       if (next->status == Node::Match) {
-        match_str = true;
+        matcher->ok_ = true;
         boundary[0].second = cur.it;
         goto finally;
       }
@@ -629,16 +624,18 @@ int Graph::Match(const std::string &s, std::vector<std::string> *groups) const {
     }
   }
   finally:
-  if (!match_str) return false;
-  if (groups) {
+  if (!matcher->ok()) return;
 //    groups->clear();  // to collect groups in look-ahead sub-graph
-    groups->resize(group_num_);
-    for (size_t i = 0; i < boundary.size(); ++i) {
-      if (boundary[i].first >= boundary[i].second) continue;
-      (*groups)[i].assign(boundary[i].first, boundary[i].second);
-    }
+  for (size_t i = 0; i < boundary.size(); ++i) {
+    if (boundary[i].first >= boundary[i].second) continue;
+    matcher->groups_[i].assign(boundary[i].first, boundary[i].second);
   }
-  return true;
+}
+
+Matcher Graph::Match(const std::string &s) const {
+  Matcher matcher(group_num_, named_group_);
+  Match(s, &matcher);
+  return matcher;
 }
 
 void Graph::DrawMermaid() const {
@@ -668,7 +665,7 @@ void Graph::DrawMermaid() const {
           break;
         case Edge::Func: s = "func";
           break;
-        case Edge::Lower: s = "lower";
+        case Edge::Lower: s = "lower: " + std::to_string(edge.bound.num);
           break;
         case Edge::Named: s = "<" + std::to_string(edge.named.idx);
           break;
@@ -682,7 +679,7 @@ void Graph::DrawMermaid() const {
           break;
         case Edge::Repeat: s = "repeat";
           break;
-        case Edge::Upper: s = "upper";
+        case Edge::Upper: s = "upper: " + std::to_string(edge.bound.num);
           break;
         default: break;
       }

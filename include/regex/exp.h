@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <unordered_map>
 
 namespace regex {
 
@@ -63,8 +64,8 @@ struct Id {
     size_t order_;
   };
 
-  inline static Id NamedId(size_t idx, std::string_view view) {
-    return Id(Id::Sym::NamedPr, idx, view);
+  inline static Id NamedId(size_t idx) {
+    return Id(Id::Sym::NamedPr, idx);
   }
   inline static Id ParenId(size_t idx) {
     return Id(Id::Sym::Paren, idx);
@@ -84,11 +85,7 @@ struct Id {
     char ch;
     struct {
       size_t idx;
-    } ref, store;
-    struct {
-      size_t idx;
-      char *name;
-    } named;
+    } named, ref, store;
     struct {
       size_t lower;
       size_t upper;
@@ -99,18 +96,14 @@ struct Id {
   Id(Sym::_Inner sym, size_t idx) : sym(sym), store({idx}) {}
   Id(Sym::_Inner sym, size_t lower, size_t upper) :
       sym(sym), repeat({lower, upper}) {}
-  Id(Sym::_Inner sym, size_t idx, std::string_view view) :
-      sym(sym), named({idx, nullptr}) {
-    named.name = new char[view.size() + 1];
-    snprintf(named.name, view.size() + 1, "%s", view.data());
-  }
 };
 
 struct Exp {
   static Exp FromStr(const std::string &s);
 
-  std::vector<Id> ids;
   size_t group_num;
+  std::vector<Id> ids;
+  std::unordered_map<std::string, size_t> named_group;
 };
 
 }  // namespace regex
