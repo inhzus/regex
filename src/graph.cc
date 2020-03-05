@@ -12,6 +12,8 @@
 
 namespace regex {
 
+const char *Matcher::kEnd = nullptr;
+
 Edge::Edge(Edge &&e) noexcept : type(e.type), next(e.next), bound(e.bound) {
   e.type = Empty;
   e.bound = {};

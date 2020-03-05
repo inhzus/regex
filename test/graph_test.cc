@@ -227,13 +227,17 @@ TEST_CASE("graph {m,n}", "[graph]") {
 }
 
 TEST_CASE("graph back referencing", "[graph]") {
-//  auto graph = CompileInfix("a(?P<b>b)(?P<c>b|c)", "ab(<b>bc|(<c>..");
-//  std::vector<std::string> groups;
-//  REQUIRE(graph.MatchGroups("abc", &groups));
-//  REQUIRE("b" == groups[1]);
-//  REQUIRE("c" == groups[2]);
+  auto graph = CompileInfix("a(?P<b>b)(?P<c>b|c)", "ab(<>bc|(<>..");
+  std::vector<std::string> groups;
+  REQUIRE(graph.MatchGroups("abc", &groups));
+  REQUIRE("b" == groups[1]);
+  REQUIRE("c" == groups[2]);
+  auto matcher = graph.Match("abc");
+  REQUIRE("b" == matcher.Group(1));
+  REQUIRE("c" == matcher.Group(2));
+  REQUIRE(matcher.ok());
 
-  auto graph = CompileInfix("(?P<a>b|c)(?P=a)d", "bc|(<><1>d..");
+  graph = CompileInfix("(?P<a>b|c)(?P=a)d", "bc|(<><1>d..");
 //  graph.DrawMermaid();
   REQUIRE(-1 == graph.MatchLen("bcd"));
   REQUIRE(3 == graph.MatchLen("bbd"));
@@ -249,4 +253,11 @@ TEST_CASE("graph matcher", "[graph]") {
   REQUIRE("c" == groups[2]);
 
   REQUIRE_FALSE(graph.MatchGroups("ab", &groups));
+
+  graph = CompileInfix("(?P<a>b|c)(?P=a)d", "bc|(<><1>d..");
+  auto matcher = graph.Match("bbd");
+  REQUIRE(matcher.ok());
+  REQUIRE(3 == matcher.Group(0).size());
+  REQUIRE("b" == matcher.Group(1));
+  REQUIRE("b" == matcher.Group("a"));
 }
