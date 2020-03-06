@@ -380,6 +380,7 @@ Graph Graph::Compile(Exp &&exp) {
             auto loop = new Node(
                 Edge::EpsilonEdge(elem.start),
                 Edge::EpsilonEdge(end));
+            nodes.push_back(loop);
             auto brake_end = new Node;
             nodes.push_back(brake_end);
             end->edges.push_back(Edge::BrakeEdge(brake_end, new bool));
@@ -461,6 +462,7 @@ Graph Graph::Compile(Exp &&exp) {
             start = new Node(
                 Edge::FuncEdge(start, new std::function<void()>(
                     [b = end->edges[0].brake.pass]() { *b = true; })));
+            nodes.push_back(start);
             end = brake_end;
             break;
           }
