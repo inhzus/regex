@@ -473,6 +473,16 @@ Graph Graph::Compile(Exp &&exp) {
         stack.push(Segment(start, end));
         break;
       }
+      case Id::Sym::Set: {
+        //          set
+        // start=0-->.-->end=0
+        auto end = new Node;
+        nodes.push_back(end);
+        auto start = new Node(Edge::SetEdge(end, std::move(id.set->v)));
+        nodes.push_back(start);
+        stack.push(Segment(start, end));
+        break;
+      }
       default: {
 //        assert(false);
         break;
@@ -619,6 +629,21 @@ void Graph::Match(const std::string &s, Matcher *matcher) const {
         ++*edge.repeat.val;
         break;
       }
+      case Edge::Set: {
+        auto &v = edge.set->v;
+        auto it = v.begin();
+        for (; cur.it != s.end() && it != v.end(); ++it) {
+          if (*cur.it == *it) {
+            break;
+          }
+        }
+        if (cur.it == s.end() || it == v.end()) {
+          backtrack = true;
+          break;
+        }
+        ++cur.it;
+        break;
+      }
       case Edge::Upper: {
         if (*edge.bound->repeat >= edge.bound->num) {
           backtrack = true;
@@ -709,6 +734,10 @@ void Graph::DrawMermaid() const {
         case Edge::StoreEnd: s = std::to_string(edge.store.idx) + ")";
           break;
         case Edge::Repeat: s = "repeat";
+          break;
+        case Edge::Set:
+          s = std::string(1, '[') +
+              std::to_string(edge.set->v.size()) + ']';
           break;
         case Edge::Upper: s = "upper: " + std::to_string(edge.bound->num);
           break;

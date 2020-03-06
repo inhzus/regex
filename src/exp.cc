@@ -43,7 +43,7 @@ Exp Exp::FromStr(const std::string &s) {
   std::unordered_map<std::string, size_t> named;
   concat_stack.push(false);
   size_t store_idx = 1;
-  auto push_operator = [&vector = vector, &stack = stack](Id id) {
+  auto push_operator = [&vector = vector, &stack = stack](Id &&id) {
     switch (static_cast<int>(id.sym)) {
       // directly output the unary operator
       case Id::Sym::More:
@@ -54,20 +54,21 @@ Exp Exp::FromStr(const std::string &s) {
       case Id::Sym::RelQuest:
       case Id::Sym::Repeat:
       case Id::Sym::PosRepeat:
-      case Id::Sym::RelRepeat: vector.push_back(id);
+      case Id::Sym::RelRepeat:
+      case Id::Sym::Set: vector.push_back(std::move(id));
         return;
     }
     while (!stack.empty()) {
-      Id top = stack.top();
+      Id &top = stack.top();
       if (top.sym.IsParen()) break;
       if (top.sym.order() <= id.sym.order()) {
         stack.pop();
-        vector.push_back(top);
+        vector.push_back(std::move(top));
       } else {
         break;
       }
     }
-    stack.push(id);
+    stack.push(std::move(id));
   };
   enum Quantifier { Greedy, Possessive, Reluctant };
   auto get_quantifier = [&s = s, &it = it]() -> Quantifier {
@@ -119,6 +120,30 @@ Exp Exp::FromStr(const std::string &s) {
                 Id::RepeatId(Id::Sym::RelRepeat, lower_bound, upper_bound));
             break;
         }
+        break;
+      }
+      case ch::kBrk: {
+        Id id(Id::SetId());
+        ++it;
+        if (*it == ch::kBrkRange || *it == ch::kBrkEnd) {
+          id.set->v.push_back(*it);
+          ++it;
+        }
+        for (; it != s.end() && *it != ch::kBrkEnd; ++it) {
+          if (*it != ch::kBrkRange) {
+            id.set->v.push_back(*it);
+          } else if (char nch = *(it + 1); nch == ch::kBrkEnd) {
+            id.set->v.push_back(ch::kBrkRange);
+          } else {
+            char pch = *(it - 1);
+            assert(pch <= nch);
+            for (++pch; pch <= nch; ++pch) {
+              id.set->v.push_back(pch);
+            }
+            ++it;
+          }
+        }
+        vector.push_back(std::move(id));
         break;
       }
       case ch::kEither: {
@@ -177,10 +202,11 @@ Exp Exp::FromStr(const std::string &s) {
       case ch::kParenEnd: {
         while (true) {
           assert(!stack.empty());
-          Id id = stack.top();
+          Id &id = stack.top();
           stack.pop();
-          vector.push_back(id);
-          if (id.sym.IsParen()) {
+          bool to_break = id.sym.IsParen();
+          vector.push_back(std::move(id));
+          if (to_break) {
             break;
           }
         }
@@ -255,7 +281,7 @@ Exp Exp::FromStr(const std::string &s) {
     }
   }
   while (!stack.empty()) {
-    vector.push_back(stack.top());
+    vector.push_back(std::move(stack.top()));
     stack.pop();
   }
   return {store_idx, std::move(vector), std::move(named)};

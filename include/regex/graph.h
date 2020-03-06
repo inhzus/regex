@@ -22,7 +22,7 @@ class Graph;
 struct Edge {
   enum Type {
     Empty, Ahead, NegAhead, Any, Brake, Char, Epsilon, Func, Lower, Store,
-    StoreEnd, Named, NamedEnd, Ref, Repeat, Upper
+    StoreEnd, Named, NamedEnd, Ref, Repeat, Set, Upper
   };
 
   static Edge AheadEdge(Node *next, Graph *graph) {
@@ -67,6 +67,9 @@ struct Edge {
   static Edge RepeatEdge(Node *next, size_t *repeat) {
     return Edge(Repeat, next, repeat);
   }
+  static Edge SetEdge(Node *next, std::vector<char> &&v) {
+    return Edge(Set, next, std::move(v));
+  }
   static Edge UpperEdge(Node *next, size_t *repeat, size_t num) {
     return Edge(Upper, next, repeat, num);
   }
@@ -81,6 +84,10 @@ struct Edge {
   Type type;
   Node *next;
   union {
+    struct {
+      size_t *repeat;
+      size_t num;
+    } *bound;
     struct {
       char val;
     } ch;
@@ -100,9 +107,8 @@ struct Edge {
       size_t *val;
     } repeat;
     struct {
-      size_t *repeat;
-      size_t num;
-    } *bound;
+      std::vector<char> v;
+    } *set;
   };
 
  private:
@@ -122,6 +128,11 @@ struct Edge {
   }
   Edge(Type type, Node *next, size_t *repeat) :
       type(type), next(next), repeat({repeat}) {}
+  Edge(Type type, Node *next, std::vector<char> &&v) :
+      type(type), next(next) {
+    set = new std::remove_reference_t<decltype(*set)>();
+    set->v = std::move(v);
+  }
 };
 
 struct Node {

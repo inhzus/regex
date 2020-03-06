@@ -15,9 +15,10 @@ namespace regex {
 namespace ch {
 static const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
     kAtomicFlag = '>', kBackslash = '\\', kBrace = '{', kBraceEnd = '}',
-    kBraceSplit = ',', kConcat = '.', kEither = '|', kMore = '*',
-    kNamedFlag = 'P', kNEqualFlag = '=', kNLeftFlag = '<', kNRightFlag = '>',
-    kParen = '(', kParenEnd = ')', kParenFLag = '?', kPlus = '+', kQuest = '?',
+    kBraceSplit = ',', kBrk = '[', kBrkEnd = ']', kBrkRange = '-',
+    kConcat = '.', kEither = '|', kMore = '*', kNamedFlag = 'P',
+    kNEqualFlag = '=', kNLeftFlag = '<', kNRightFlag = '>', kParen = '(',
+    kParenEnd = ')', kParenFLag = '?', kPlus = '+', kQuest = '?',
     kUnParenFlag = ':';
 };
 
@@ -39,7 +40,8 @@ struct Id {
       Plus, PosPlus, RelPlus,  // "+", "++", "+?"
       Quest, PosQuest, RelQuest,  // "?", "?+", "??"
       RefPr,  // "(?P=name)"
-      Repeat, PosRepeat, RelRepeat  // "{m,n}", "{m,n}+", "{m,n}?"
+      Repeat, PosRepeat, RelRepeat,  // "{m,n}", "{m,n}+", "{m,n}?"
+      Set,  // "[...]"
     };
     explicit Sym(Sym::_Inner inner) : inner_(inner), order_(Order(inner)) {}
     bool operator==(Sym::_Inner inner) { return inner == inner_; }
@@ -78,6 +80,12 @@ struct Id {
   inline static Id RefId(size_t idx) {
     return Id(Id::Sym::RefPr, idx);
   }
+  inline static Id SetId() {
+    Id id(Sym::Set);
+    id.set = new std::remove_reference_t<
+        decltype(*id.set)>({std::vector<char>()});
+    return id;
+  }
 
   explicit Id(Sym::_Inner sym) : sym(sym), ch() {}
   explicit Id(char ch) : sym(Sym::Char), ch(ch) {}
@@ -89,15 +97,26 @@ struct Id {
         repeat = new std::remove_reference_t<decltype(*repeat)>(
             {id.repeat->lower, id.repeat->upper});
         break;
+      case Sym::Set:
+        set = new std::remove_reference_t<
+            decltype(*set)>({id.set->v});
+        break;
       default:store = id.store;
         break;
     }
+  }
+  Id(Id &&id) : sym(id.sym) {
+    set = id.set;
+    id.set = {};
+    id.sym = Sym(Sym::Char);
   }
   ~Id() {
     switch (static_cast<int>(sym)) {
       case Sym::Repeat:
       case Sym::RelRepeat:
       case Sym::PosRepeat: delete repeat;
+        break;
+      case Sym::Set: delete set;
         break;
       default:break;
     }
@@ -113,6 +132,9 @@ struct Id {
       size_t lower;
       size_t upper;
     } *repeat;
+    struct {
+      std::vector<char> v;
+    } *set;
   };
 
  private:

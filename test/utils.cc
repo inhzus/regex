@@ -71,6 +71,10 @@ std::string IdsToStr(const std::vector<Id> &vector) {
         }
         break;
       }
+      case Id::Sym::Set: {
+        (s += '[') += std::to_string(id.set->v.size()) + ']';
+        break;
+      }
       default:assert(false);
         break;
     }
