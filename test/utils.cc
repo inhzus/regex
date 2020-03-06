@@ -54,12 +54,12 @@ std::string IdsToStr(const std::vector<Id> &vector) {
       case Id::Sym::PosRepeat:
       case Id::Sym::RelRepeat: {
         s.push_back('{');
-        if (id.repeat.lower != 0) {
-          s += std::to_string(id.repeat.lower);
+        if (id.repeat->lower != 0) {
+          s += std::to_string(id.repeat->lower);
         }
         s.push_back(',');
-        if (id.repeat.upper != std::numeric_limits<size_t>::max()) {
-          s += std::to_string(id.repeat.upper);
+        if (id.repeat->upper != std::numeric_limits<size_t>::max()) {
+          s += std::to_string(id.repeat->upper);
         }
         s.push_back('}');
         switch (static_cast<int>(id.sym)) {

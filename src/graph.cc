@@ -190,7 +190,7 @@ Graph Graph::Compile(Exp &&exp) {
   std::stack<Segment> stack;
   std::vector<Node *> nodes;  // for memory management
 
-  for (auto id : exp.ids) {
+  for (auto &id : exp.ids) {
     switch (static_cast<int>(id.sym)) {
       case Id::Sym::AheadPr:
       case Id::Sym::NegAheadPr: {
@@ -430,16 +430,16 @@ Graph Graph::Compile(Exp &&exp) {
             Edge::FuncEdge(loop, new std::function<void()>{
                 [r = repeat]() { *r = 0; }}));
         nodes.push_back(start);
-        if (id.repeat.upper != std::numeric_limits<size_t>::max()) {
+        if (id.repeat->upper != std::numeric_limits<size_t>::max()) {
           loop->edges.push_back(
-              Edge::UpperEdge(elem.start, repeat, id.repeat.upper));
+              Edge::UpperEdge(elem.start, repeat, id.repeat->upper));
         } else {
           loop->edges.push_back(Edge::EpsilonEdge(elem.start));
         }
         auto end = new Node;
         nodes.push_back(end);
-        if (id.repeat.lower != 0) {
-          loop->edges.push_back(Edge::LowerEdge(end, repeat, id.repeat.lower));
+        if (id.repeat->lower != 0) {
+          loop->edges.push_back(Edge::LowerEdge(end, repeat, id.repeat->lower));
         } else {
           loop->edges.push_back(Edge::EpsilonEdge(end));
         }

@@ -81,6 +81,27 @@ struct Id {
 
   explicit Id(Sym::_Inner sym) : sym(sym), ch() {}
   explicit Id(char ch) : sym(Sym::Char), ch(ch) {}
+  Id(const Id &id) : sym(id.sym) {
+    switch (static_cast<int>(sym)) {
+      case Sym::Repeat:
+      case Sym::RelRepeat:
+      case Sym::PosRepeat:
+        repeat = new std::remove_reference_t<decltype(*repeat)>(
+            {id.repeat->lower, id.repeat->upper});
+        break;
+      default:store = id.store;
+        break;
+    }
+  }
+  ~Id() {
+    switch (static_cast<int>(sym)) {
+      case Sym::Repeat:
+      case Sym::RelRepeat:
+      case Sym::PosRepeat: delete repeat;
+        break;
+      default:break;
+    }
+  }
 
   Sym sym;
   union {
@@ -91,13 +112,14 @@ struct Id {
     struct {
       size_t lower;
       size_t upper;
-    } repeat;
+    } *repeat;
   };
 
  private:
   Id(Sym::_Inner sym, size_t idx) : sym(sym), store({idx}) {}
-  Id(Sym::_Inner sym, size_t lower, size_t upper) :
-      sym(sym), repeat({lower, upper}) {}
+  Id(Sym::_Inner sym, size_t lower, size_t upper) : sym(sym) {
+    repeat = new std::remove_reference_t<decltype(*repeat)>({lower, upper});
+  }
 };
 
 struct Exp {
