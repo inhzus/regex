@@ -36,7 +36,10 @@ Edge::~Edge() {
       break;
     case Func: delete func.f;
       break;
-    case Repeat: delete bound.repeat;
+    case Repeat: delete repeat.val;
+      break;
+    case Lower:
+    case Upper: delete bound;
       break;
     default: break;
   }
@@ -574,7 +577,7 @@ void Graph::Match(const std::string &s, Matcher *matcher) const {
         break;
       }
       case Edge::Lower: {
-        if (*edge.bound.repeat < edge.bound.num) {
+        if (*edge.bound->repeat < edge.bound->num) {
           backtrack = true;
         }
         break;
@@ -617,7 +620,7 @@ void Graph::Match(const std::string &s, Matcher *matcher) const {
         break;
       }
       case Edge::Upper: {
-        if (*edge.bound.repeat >= edge.bound.num) {
+        if (*edge.bound->repeat >= edge.bound->num) {
           backtrack = true;
         }
         break;
@@ -693,7 +696,7 @@ void Graph::DrawMermaid() const {
           break;
         case Edge::Func: s = "func";
           break;
-        case Edge::Lower: s = "lower: " + std::to_string(edge.bound.num);
+        case Edge::Lower: s = "lower: " + std::to_string(edge.bound->num);
           break;
         case Edge::Named: s = "<" + std::to_string(edge.named.idx);
           break;
@@ -707,7 +710,7 @@ void Graph::DrawMermaid() const {
           break;
         case Edge::Repeat: s = "repeat";
           break;
-        case Edge::Upper: s = "upper: " + std::to_string(edge.bound.num);
+        case Edge::Upper: s = "upper: " + std::to_string(edge.bound->num);
           break;
         default: break;
       }

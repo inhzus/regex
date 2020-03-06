@@ -102,7 +102,7 @@ struct Edge {
     struct {
       size_t *repeat;
       size_t num;
-    } bound;
+    } *bound;
   };
 
  private:
@@ -117,7 +117,9 @@ struct Edge {
   Edge(Type type, Node *next, bool *pass) :
       type(type), next(next), brake({pass}) {}
   Edge(Type type, Node *next, size_t *repeat, size_t num) :
-      type(type), next(next), bound({repeat, num}) {}
+      type(type), next(next) {
+    bound = new std::remove_reference_t<decltype(*bound)>({repeat, num});
+  }
   Edge(Type type, Node *next, size_t *repeat) :
       type(type), next(next), repeat({repeat}) {}
 };
