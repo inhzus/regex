@@ -142,6 +142,10 @@ Exp Exp::FromStr(const std::string &s) {
             stack.push(Id(Id::Sym::NegAheadPr));
             break;
           }
+          case ch::kAtomicFlag: {
+            stack.push(Id(Id::Sym::AtomicPr));
+            break;
+          }
           case ch::kNamedFlag: {
             ++flag;  // *flag == '<' or '='
             if (*flag == ch::kNLeftFlag) {

@@ -14,10 +14,10 @@ namespace regex {
 
 namespace ch {
 static const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
-    kBackslash = '\\', kBrace = '{', kBraceEnd = '}', kBraceSplit = ',',
-    kConcat = '.', kEither = '|', kMore = '*', kNamedFlag = 'P',
-    kNEqualFlag = '=', kNLeftFlag = '<', kNRightFlag = '>', kParen = '(',
-    kParenEnd = ')', kParenFLag = '?', kPlus = '+', kQuest = '?',
+    kAtomicFlag = '>', kBackslash = '\\', kBrace = '{', kBraceEnd = '}',
+    kBraceSplit = ',', kConcat = '.', kEither = '|', kMore = '*',
+    kNamedFlag = 'P', kNEqualFlag = '=', kNLeftFlag = '<', kNRightFlag = '>',
+    kParen = '(', kParenEnd = ')', kParenFLag = '?', kPlus = '+', kQuest = '?',
     kUnParenFlag = ':';
 };
 
@@ -28,6 +28,7 @@ struct Id {
     enum _Inner {
       AheadPr, NegAheadPr,  // "(?=", "(?!"
       Any,  // "."
+      AtomicPr,  // "(?>...)"
       Char,  // a character
       Concat,  // concatenate characters
       Either,  // "|"
@@ -52,8 +53,9 @@ struct Id {
     }
     [[nodiscard]] bool IsOperator() const { return !IsOperand(); }
     [[nodiscard]] bool IsParen() const {
-      return inner_ == Paren || inner_ == UnParen || inner_ == NamedPr
-          || inner_ == AheadPr || inner_ == NegAheadPr || inner_ == RefPr;
+      return inner_ == Paren || inner_ == UnParen || inner_ == AheadPr ||
+          inner_ == NegAheadPr || inner_ == AtomicPr || inner_ == NamedPr ||
+          inner_ == RefPr;
     }
     [[nodiscard]] size_t order() const { return order_; }
 

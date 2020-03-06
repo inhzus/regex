@@ -12,7 +12,7 @@
 - [x] possessive: "\*+", "?+"
 - [x] {m, n}
 - [x] named group & back-reference: (?P\<name\>...), (?P=name) 
-- [ ] atomic group: (?>...)
+- [x] atomic group: (?>...)
 - [ ] character range
 - [ ] bytecode virtual machine
 

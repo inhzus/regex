@@ -224,6 +224,22 @@ Graph Graph::Compile(Exp &&exp) {
         stack.push(Segment(start, end));
         break;
       }
+      case Id::Sym::AtomicPr: {
+        //   |func-brake|     |brake|
+        // start=0-->.-->0==>0-->.-->end=0
+        //              |elem|
+        Segment elem(stack.top());
+        stack.pop();
+        auto end = new Node;
+        nodes.push_back(end);
+        elem.end->edges.push_back(Edge::BrakeEdge(end, new bool));
+        auto start = new Node(
+            Edge::FuncEdge(elem.start, new std::function<void()>(
+                [b = elem.end->edges.back().brake.pass]() { *b = true; })));
+        nodes.push_back(start);
+        stack.push(Segment(start, end));
+        break;
+      }
       case Id::Sym::Char: {
         // start=0-->ch=0-->end=0
         auto end = new Node;
@@ -381,6 +397,8 @@ Graph Graph::Compile(Exp &&exp) {
         break;
       }
       case Id::Sym::RefPr: {
+        //          | ref |
+        // start=0-->0-->0-->end=0
         auto end = new Node;
         nodes.push_back(end);
         auto start = new Node(Edge::RefEdge(end, id.ref.idx));
@@ -431,6 +449,12 @@ Graph Graph::Compile(Exp &&exp) {
             break;
           }
           case Id::Sym::PosRepeat: {
+            //                    Upper
+            //                     |-->0==>0-->|
+            //       |func-repeat| |  Repeat   |
+            // start=0-->=0-->loop=0<--.<--.<--|              brake
+            //   /func-brake|      |  Lower        |-->end=0-->|
+            //                     |-->.-->.-->.-->|           0=brake_end
             auto brake_end = new Node;
             nodes.push_back(brake_end);
             end->edges.push_back(Edge::BrakeEdge(brake_end, new bool));

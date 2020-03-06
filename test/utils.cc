@@ -19,6 +19,8 @@ std::string IdsToStr(const std::vector<Id> &vector) {
         break;
       case Id::Sym::Any: s.push_back('_');
         break;
+      case Id::Sym::AtomicPr: s += "(>";
+        break;
       case Id::Sym::Char: s.push_back(id.ch);
         break;
       case Id::Sym::Concat: s.push_back('.');

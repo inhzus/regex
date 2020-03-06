@@ -261,3 +261,10 @@ TEST_CASE("graph matcher", "[graph]") {
   REQUIRE("b" == matcher.Group(1));
   REQUIRE("b" == matcher.Group("a"));
 }
+
+TEST_CASE("graph match atomic group", "[graph]") {
+  auto graph = CompileInfix("(?>aa|a)a", "aa.a|(>a.");
+
+  REQUIRE_FALSE(graph.Match("aa").ok());
+  REQUIRE(graph.Match("aaa").ok());
+}
