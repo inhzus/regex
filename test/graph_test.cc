@@ -292,4 +292,10 @@ TEST_CASE("graph match character set", "[graph]") {
 
   graph = CompileInfix("[]]", "[1]");
   REQUIRE(graph.Match("]").ok());
+
+  graph = CompileInfix("[^ab]", "[^2]");
+  REQUIRE_FALSE(graph.Match("a"));
+  REQUIRE_FALSE(graph.Match("b"));
+  REQUIRE_FALSE(graph.Match(""));
+  REQUIRE(graph.Match("c"));
 }

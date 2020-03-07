@@ -483,6 +483,16 @@ Graph Graph::Compile(Exp &&exp) {
         stack.push(Segment(start, end));
         break;
       }
+      case Id::Sym::ExSet: {
+        //          set
+        // start=0-->.-->end=0
+        auto end = new Node;
+        nodes.push_back(end);
+        auto start = new Node(Edge::SetExEdge(end, std::move(id.set->v)));
+        nodes.push_back(start);
+        stack.push(Segment(start, end));
+        break;
+      }
       default: {
 //        assert(false);
         break;
@@ -527,13 +537,7 @@ void Graph::Match(const std::string &s, Matcher *matcher) const {
 
   while (true) {
     // set backtrack false
-    // if reach str end, then
-    //   if node will match, then
-    //     match and return
-    //   else
-    //     set backtrack true
-    // else
-    //   check edge matched. if not, set backtrack true
+    // check edge matched. if not, set backtrack true
     // if backtrack
     //   do stack backtracking
     // else
@@ -541,118 +545,147 @@ void Graph::Match(const std::string &s, Matcher *matcher) const {
     bool backtrack = false;
     auto &edge = cur.node->edges[cur.idx];
     switch (edge.type) {
-      case Edge::Ahead: {
-        edge.ahead.graph->Match(std::string(cur.it, s.end()), matcher);
-        if (!matcher->ok()) {
-          backtrack = true;
-        }
-        break;
-      }
-      case Edge::NegAhead: {
-        edge.ahead.graph->Match(std::string(cur.it, s.end()), matcher);
-        if (matcher->ok()) {
-          backtrack = true;
-        }
-        break;
-      }
-      case Edge::Any: {
+      case Edge::Any:
+      case Edge::Char:
+      case Edge::Set:
+      case Edge::SetEx: {
         if (cur.it == s.end()) {
           backtrack = true;
-          break;
         }
-        ++cur.it;
-        FallThrough;
-      }
-      case Edge::Epsilon: {
-        break;
-      }
-      case Edge::Brake: {
-        if (*edge.brake.pass) {
-          *edge.brake.pass = false;
-        } else {
-          backtrack = true;
-        }
-        break;
-      }
-      case Edge::Char: {
-        if (cur.it == s.end() || *cur.it != edge.ch.val) {
-          backtrack = true;
-          break;
-        }
-        ++cur.it;
-        break;
-      }
-      case Edge::Func: {
-        (*edge.func.f)();
-        break;
-      }
-      case Edge::Lower: {
-        if (*edge.bound->repeat < edge.bound->num) {
-          backtrack = true;
-        }
-        break;
-      }
-      case Edge::Named: {
-        boundary[edge.named.idx].first = cur.it;
-        break;
-      }
-      case Edge::NamedEnd: {
-        boundary[edge.named_end.idx].second = cur.it;
-        break;
-      }
-      case Edge::Store: {
-        boundary[edge.store.idx].first = cur.it;
-        break;
-      }
-      case Edge::StoreEnd: {
-        boundary[edge.store_end.idx].second = cur.it;
         break;
       }
       case Edge::Ref: {
         auto &pair = boundary[edge.ref.idx];
-        std::string_view view(&*pair.first, pair.second - pair.first);
-        auto p = cur.it;
-        auto vit = view.begin();
-        for (; vit != view.end(); ++vit, ++p) {
-          if (*p != *vit) {
-            backtrack = true;
-            break;
-          }
-        }
-        if (!backtrack) {
-          assert(vit == view.end());
-          cur.it = p;
-        }
-        break;
-      }
-      case Edge::Repeat: {
-        ++*edge.repeat.val;
-        break;
-      }
-      case Edge::Set: {
-        auto &v = edge.set->v;
-        auto it = v.begin();
-        for (; cur.it != s.end() && it != v.end(); ++it) {
-          if (*cur.it == *it) {
-            break;
-          }
-        }
-        if (cur.it == s.end() || it == v.end()) {
-          backtrack = true;
-          break;
-        }
-        ++cur.it;
-        break;
-      }
-      case Edge::Upper: {
-        if (*edge.bound->repeat >= edge.bound->num) {
+        if (pair.second - pair.first > s.end() - cur.it) {
           backtrack = true;
         }
         break;
       }
       default:break;
     }
-//    }
+    if (!backtrack) {
+      switch (edge.type) {
+        case Edge::Ahead: {
+          edge.ahead.graph->Match(std::string(cur.it, s.end()), matcher);
+          if (!matcher->ok()) {
+            backtrack = true;
+          }
+          break;
+        }
+        case Edge::NegAhead: {
+          edge.ahead.graph->Match(std::string(cur.it, s.end()), matcher);
+          if (matcher->ok()) {
+            backtrack = true;
+          }
+          break;
+        }
+        case Edge::Any: {
+          ++cur.it;
+          FallThrough;
+        }
+        case Edge::Epsilon: {
+          break;
+        }
+        case Edge::Brake: {
+          if (*edge.brake.pass) {
+            *edge.brake.pass = false;
+          } else {
+            backtrack = true;
+          }
+          break;
+        }
+        case Edge::Char: {
+          if (*cur.it != edge.ch.val) {
+            backtrack = true;
+            break;
+          }
+          ++cur.it;
+          break;
+        }
+        case Edge::Func: {
+          (*edge.func.f)();
+          break;
+        }
+        case Edge::Lower: {
+          if (*edge.bound->repeat < edge.bound->num) {
+            backtrack = true;
+          }
+          break;
+        }
+        case Edge::Named: {
+          boundary[edge.named.idx].first = cur.it;
+          break;
+        }
+        case Edge::NamedEnd: {
+          boundary[edge.named_end.idx].second = cur.it;
+          break;
+        }
+        case Edge::Store: {
+          boundary[edge.store.idx].first = cur.it;
+          break;
+        }
+        case Edge::StoreEnd: {
+          boundary[edge.store_end.idx].second = cur.it;
+          break;
+        }
+        case Edge::Ref: {
+          auto &pair = boundary[edge.ref.idx];
+          std::string_view view(&*pair.first, pair.second - pair.first);
+          auto p = cur.it;
+          auto vit = view.begin();
+          for (; vit != view.end(); ++vit, ++p) {
+            if (*p != *vit) {
+              backtrack = true;
+              break;
+            }
+          }
+          if (!backtrack) {
+            assert(vit == view.end());
+            cur.it = p;
+          }
+          break;
+        }
+        case Edge::Repeat: {
+          ++*edge.repeat.val;
+          break;
+        }
+        case Edge::Set: {
+          auto &v = edge.set->v;
+          auto it = v.begin();
+          for (; it != v.end(); ++it) {
+            if (*cur.it == *it) {
+              break;
+            }
+          }
+          if (it == v.end()) {
+            backtrack = true;
+            break;
+          }
+          ++cur.it;
+          break;
+        }
+        case Edge::SetEx: {
+          auto &v = edge.set->v;
+          auto it = v.begin();
+          for (; it != v.end(); ++it) {
+            if (*cur.it == *it) {
+              backtrack = true;
+              break;
+            }
+          }
+          if (backtrack) break;
+          ++cur.it;
+          break;
+        }
+        case Edge::Upper: {
+          if (*edge.bound->repeat >= edge.bound->num) {
+            backtrack = true;
+          }
+          break;
+        }
+        default:break;
+      }
+    }
     if (backtrack) {
       // go other children, or pop the parent node
       while (true) {
@@ -738,6 +771,9 @@ void Graph::DrawMermaid() const {
         case Edge::Set:
           s = std::string(1, '[') +
               std::to_string(edge.set->v.size()) + ']';
+          break;
+        case Edge::SetEx:s = std::string("[^")
+              + std::to_string(edge.set->v.size()) + ']';
           break;
         case Edge::Upper: s = "upper: " + std::to_string(edge.bound->num);
           break;

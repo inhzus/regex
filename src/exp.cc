@@ -125,6 +125,10 @@ Exp Exp::FromStr(const std::string &s) {
       case ch::kBrk: {
         Id id(Id::SetId());
         ++it;
+        if (*it == ch::kBrkReverse) {
+          id.sym = Id::Sym(Id::Sym::ExSet);
+          ++it;
+        }
         if (*it == ch::kBrkRange || *it == ch::kBrkEnd) {
           id.set->v.push_back(*it);
           ++it;

@@ -16,9 +16,9 @@ namespace ch {
 static const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
     kAtomicFlag = '>', kBackslash = '\\', kBrace = '{', kBraceEnd = '}',
     kBraceSplit = ',', kBrk = '[', kBrkEnd = ']', kBrkRange = '-',
-    kConcat = '.', kEither = '|', kMore = '*', kNamedFlag = 'P',
-    kNEqualFlag = '=', kNLeftFlag = '<', kNRightFlag = '>', kParen = '(',
-    kParenEnd = ')', kParenFLag = '?', kPlus = '+', kQuest = '?',
+    kBrkReverse = '^', kConcat = '.', kEither = '|', kMore = '*',
+    kNamedFlag = 'P', kNEqualFlag = '=', kNLeftFlag = '<', kNRightFlag = '>',
+    kParen = '(', kParenEnd = ')', kParenFLag = '?', kPlus = '+', kQuest = '?',
     kUnParenFlag = ':';
 };
 
@@ -41,7 +41,7 @@ struct Id {
       Quest, PosQuest, RelQuest,  // "?", "?+", "??"
       RefPr,  // "(?P=name)"
       Repeat, PosRepeat, RelRepeat,  // "{m,n}", "{m,n}+", "{m,n}?"
-      Set,  // "[...]"
+      Set, ExSet,  // "[...]", "[^...]"
     };
     explicit Sym(Sym::_Inner inner) : inner_(inner), order_(Order(inner)) {}
     bool operator==(Sym::_Inner inner) { return inner == inner_; }

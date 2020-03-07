@@ -75,6 +75,10 @@ std::string IdsToStr(const std::vector<Id> &vector) {
         (s += '[') += std::to_string(id.set->v.size()) + ']';
         break;
       }
+      case Id::Sym::ExSet: {
+        (s += "[^") += std::to_string(id.set->v.size()) + ']';
+        break;
+      }
       default:assert(false);
         break;
     }

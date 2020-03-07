@@ -22,7 +22,7 @@ class Graph;
 struct Edge {
   enum Type {
     Empty, Ahead, NegAhead, Any, Brake, Char, Epsilon, Func, Lower, Store,
-    StoreEnd, Named, NamedEnd, Ref, Repeat, Set, Upper
+    StoreEnd, Named, NamedEnd, Ref, Repeat, Set, SetEx, Upper
   };
 
   static Edge AheadEdge(Node *next, Graph *graph) {
@@ -69,6 +69,9 @@ struct Edge {
   }
   static Edge SetEdge(Node *next, std::vector<char> &&v) {
     return Edge(Set, next, std::move(v));
+  }
+  static Edge SetExEdge(Node *next, std::vector<char> &&v) {
+    return Edge(SetEx, next, std::move(v));
   }
   static Edge UpperEdge(Node *next, size_t *repeat, size_t num) {
     return Edge(Upper, next, repeat, num);
@@ -171,6 +174,7 @@ class Matcher {
           std::unordered_map<std::string, size_t> named_group) :
       ok_(false), groups_(group_num, std::string()),
       named_groups_(std::move(named_group)) {}
+  operator bool() const { return ok_; }
 
   [[nodiscard]] std::string_view
   Group(size_t idx) const { return groups_[idx]; }
