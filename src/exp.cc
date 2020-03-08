@@ -49,34 +49,41 @@ enum class RangeT : char {
 
 static std::tuple<RangeT, char, CharSet::Group>
 ParseBackSlash(char ch, std::string_view escaped) {
-  RangeT r = RangeT::Include;
+  RangeT r;
   CharSet::Group group;
   char val;
   switch (ch) {
+    case es::kNum:
+    case es::kWord:
+    case es::kWSpace: r = RangeT::Include;
+      break;
     case es::kNumEx:
     case es::kWordEx:
     case es::kWSpaceEx:r = RangeT::Exclude;
       break;
-    default: break;
+    default: r = RangeT::Char;
+      break;
   }
   switch (ch) {
     case es::kNum:
     case es::kNumEx: {
       group.Insert('0', '9');
+      break;
     }
     case es::kWord:
     case es::kWordEx: {
       group.Insert('0', '9').Insert('a', 'z')
           .Insert('A', 'Z').Insert('-');
+      break;
     }
     case es::kWSpace:
     case es::kWSpaceEx: {
       group.Insert('\t', '\n')  // "\t\n"
           .Insert('\f', '\r')  // "\f\r"
           .Insert(' ');
+      break;
     }
     default: {
-      r = RangeT::Char;
       for (auto p : escaped) {
         if (ch == p) {
           val = ch;
