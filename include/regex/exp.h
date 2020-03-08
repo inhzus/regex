@@ -4,6 +4,8 @@
 #ifndef REGEX_EXP_H_
 #define REGEX_EXP_H_
 
+#include <algorithm>
+#include <cassert>
 #include <stack>
 #include <string>
 #include <utility>
@@ -13,13 +15,87 @@
 namespace regex {
 
 namespace ch {
-static const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
+static constexpr const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
     kAtomicFlag = '>', kBackslash = '\\', kBrace = '{', kBraceEnd = '}',
     kBraceSplit = ',', kBrk = '[', kBrkEnd = ']', kBrkRange = '-',
     kBrkReverse = '^', kConcat = '.', kEither = '|', kMore = '*',
     kNamedFlag = 'P', kNEqualFlag = '=', kNLeftFlag = '<', kNRightFlag = '>',
     kParen = '(', kParenEnd = ')', kParenFLag = '?', kPlus = '+', kQuest = '?',
     kUnParenFlag = ':';
+};
+
+// character classes
+struct CharSet {
+  struct Range {
+    explicit Range(char val) : val(val), last(val) {}
+    Range(char val, char last) : val(val), last(last) {}
+    bool operator<(const Range &range) const {
+      return val < range.val || (val == range.val && last < range.last);
+    }
+
+    char val;
+    char last;  // `last` contained
+  };
+
+  struct Group {
+    Group() : ranges() {}
+    inline Group &Insert(char ch) {
+      return Insert(ch, ch);
+    }
+    inline Group &Insert(char val, char last) {
+      ranges.emplace_back(val, last);
+      return *this;
+    }
+    inline Group &MoveAppend(Group *group) {
+      std::move(group->ranges.begin(), group->ranges.end(),
+                std::back_inserter(ranges));
+      group->ranges.clear();
+      return *this;
+    }
+    void Fold() {
+      std::sort(ranges.begin(), ranges.end());
+      std::vector<Range> result;
+      auto it = ranges.begin(), cur = it++;
+      while (it != ranges.end()) {
+        if (cur->last + 1 >= it->val) {
+          cur->last = std::max(cur->last, it->last);
+        } else {
+          result.push_back(*cur);
+          cur = it;
+        }
+        ++it;
+      }
+      result.push_back(*cur);
+      std::swap(ranges, result);
+    }
+    [[nodiscard]] bool Contains(char ch) const {
+      for (const auto &range : ranges) {
+        if (ch >= range.val && ch <= range.last) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    std::vector<Range> ranges;
+  };
+
+  CharSet() : pos(), negs() {}
+  inline void Fold() {
+    pos.Fold();
+  }
+  [[nodiscard]] bool Contains(char ch) const {
+    if (pos.Contains(ch)) return true;
+    for (const auto &group : negs) {
+      if (!group.Contains(ch)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Group pos;
+  std::vector<Group> negs;
 };
 
 struct Id {
@@ -41,9 +117,14 @@ struct Id {
       Quest, PosQuest, RelQuest,  // "?", "?+", "??"
       RefPr,  // "(?P=name)"
       Repeat, PosRepeat, RelRepeat,  // "{m,n}", "{m,n}+", "{m,n}?"
-      Set, ExSet,  // "[...]", "[^...]"
+      Set, SetEx,  // "[...]", "[^...]"
     };
     explicit Sym(Sym::_Inner inner) : inner_(inner), order_(Order(inner)) {}
+    Sym &operator=(Sym::_Inner inner) {
+      inner_ = inner;
+      order_ = Order(inner);
+      return *this;
+    }
     bool operator==(Sym::_Inner inner) { return inner == inner_; }
     bool operator!=(Sym::_Inner inner) { return inner != inner_; }
     explicit operator int() const {
@@ -82,8 +163,7 @@ struct Id {
   }
   inline static Id SetId() {
     Id id(Sym::Set);
-    id.set = new std::remove_reference_t<
-        decltype(*id.set)>({std::vector<char>()});
+    id.set = new std::remove_reference_t<decltype(*id.set)>{CharSet()};
     return id;
   }
 
@@ -99,7 +179,7 @@ struct Id {
         break;
       case Sym::Set:
         set = new std::remove_reference_t<
-            decltype(*set)>({id.set->v});
+            decltype(*set)>({id.set->val});
         break;
       default:store = id.store;
         break;
@@ -116,7 +196,8 @@ struct Id {
       case Sym::RelRepeat:
       case Sym::PosRepeat: delete repeat;
         break;
-      case Sym::Set: delete set;
+      case Sym::Set:
+      case Sym::SetEx: delete set;
         break;
       default:break;
     }
@@ -133,7 +214,7 @@ struct Id {
       size_t upper;
     } *repeat;
     struct {
-      std::vector<char> v;
+      CharSet val;
     } *set;
   };
 

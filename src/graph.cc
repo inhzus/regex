@@ -41,6 +41,9 @@ Edge::~Edge() {
     case Lower:
     case Upper: delete bound;
       break;
+    case Set:
+    case SetEx: delete set;
+      break;
     default: break;
   }
 }
@@ -478,17 +481,17 @@ Graph Graph::Compile(Exp &&exp) {
         // start=0-->.-->end=0
         auto end = new Node;
         nodes.push_back(end);
-        auto start = new Node(Edge::SetEdge(end, std::move(id.set->v)));
+        auto start = new Node(Edge::SetEdge(end, std::move(id.set->val)));
         nodes.push_back(start);
         stack.push(Segment(start, end));
         break;
       }
-      case Id::Sym::ExSet: {
+      case Id::Sym::SetEx: {
         //          set
         // start=0-->.-->end=0
         auto end = new Node;
         nodes.push_back(end);
-        auto start = new Node(Edge::SetExEdge(end, std::move(id.set->v)));
+        auto start = new Node(Edge::SetExEdge(end, std::move(id.set->val)));
         nodes.push_back(start);
         stack.push(Segment(start, end));
         break;
@@ -650,31 +653,19 @@ void Graph::Match(const std::string &s, Matcher *matcher) const {
           break;
         }
         case Edge::Set: {
-          auto &v = edge.set->v;
-          auto it = v.begin();
-          for (; it != v.end(); ++it) {
-            if (*cur.it == *it) {
-              break;
-            }
-          }
-          if (it == v.end()) {
+          if (edge.set->val.Contains(*cur.it)) {
+            ++cur.it;
+          } else {
             backtrack = true;
-            break;
           }
-          ++cur.it;
           break;
         }
         case Edge::SetEx: {
-          auto &v = edge.set->v;
-          auto it = v.begin();
-          for (; it != v.end(); ++it) {
-            if (*cur.it == *it) {
-              backtrack = true;
-              break;
-            }
+          if (edge.set->val.Contains(*cur.it)) {
+            backtrack = true;
+          } else {
+            ++cur.it;
           }
-          if (backtrack) break;
-          ++cur.it;
           break;
         }
         case Edge::Upper: {
@@ -770,10 +761,11 @@ void Graph::DrawMermaid() const {
           break;
         case Edge::Set:
           s = std::string(1, '[') +
-              std::to_string(edge.set->v.size()) + ']';
+              std::to_string(edge.set->val.pos.ranges.size()) + ']';
           break;
-        case Edge::SetEx:s = std::string("[^")
-              + std::to_string(edge.set->v.size()) + ']';
+        case Edge::SetEx:
+          s = std::string("[^")
+              + std::to_string(edge.set->val.pos.ranges.size()) + ']';
           break;
         case Edge::Upper: s = "upper: " + std::to_string(edge.bound->num);
           break;

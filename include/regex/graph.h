@@ -67,10 +67,10 @@ struct Edge {
   static Edge RepeatEdge(Node *next, size_t *repeat) {
     return Edge(Repeat, next, repeat);
   }
-  static Edge SetEdge(Node *next, std::vector<char> &&v) {
+  static Edge SetEdge(Node *next, CharSet &&v) {
     return Edge(Set, next, std::move(v));
   }
-  static Edge SetExEdge(Node *next, std::vector<char> &&v) {
+  static Edge SetExEdge(Node *next, CharSet &&v) {
     return Edge(SetEx, next, std::move(v));
   }
   static Edge UpperEdge(Node *next, size_t *repeat, size_t num) {
@@ -110,7 +110,7 @@ struct Edge {
       size_t *val;
     } repeat;
     struct {
-      std::vector<char> v;
+      CharSet val;
     } *set;
   };
 
@@ -131,10 +131,10 @@ struct Edge {
   }
   Edge(Type type, Node *next, size_t *repeat) :
       type(type), next(next), repeat({repeat}) {}
-  Edge(Type type, Node *next, std::vector<char> &&v) :
+  Edge(Type type, Node *next, CharSet &&v) :
       type(type), next(next) {
     set = new std::remove_reference_t<decltype(*set)>();
-    set->v = std::move(v);
+    set->val = std::move(v);
   }
 };
 
@@ -174,7 +174,7 @@ class Matcher {
           std::unordered_map<std::string, size_t> named_group) :
       ok_(false), groups_(group_num, std::string()),
       named_groups_(std::move(named_group)) {}
-  operator bool() const { return ok_; }
+  explicit operator bool() const { return ok_; }
 
   [[nodiscard]] std::string_view
   Group(size_t idx) const { return groups_[idx]; }

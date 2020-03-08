@@ -270,18 +270,18 @@ TEST_CASE("graph match atomic group", "[graph]") {
 }
 
 TEST_CASE("graph match character set", "[graph]") {
-  auto graph = CompileInfix("[ab]", "[2]");
+  auto graph = CompileInfix("[ab]", "[1]");
   REQUIRE(graph.Match("a").ok());
   REQUIRE(graph.Match("b").ok());
   REQUIRE_FALSE(graph.Match("c").ok());
   REQUIRE_FALSE(graph.Match("").ok());
 
-  graph = CompileInfix("[a-z]", "[26]");
+  graph = CompileInfix("[a-z]", "[1]");
   for (char ch = 'a'; ch <= 'z'; ++ch) {
     REQUIRE(graph.Match(std::string(1, ch)).ok());
   }
 
-  graph = CompileInfix("[a-c-]", "[4]");
+  graph = CompileInfix("[a-c-]", "[2]");
   for (char ch = 'a'; ch <= 'c'; ++ch) {
     REQUIRE(graph.Match(std::string(1, ch)).ok());
   }
@@ -293,7 +293,7 @@ TEST_CASE("graph match character set", "[graph]") {
   graph = CompileInfix("[]]", "[1]");
   REQUIRE(graph.Match("]").ok());
 
-  graph = CompileInfix("[^ab]", "[^2]");
+  graph = CompileInfix("[^ab]", "[^1]");
   REQUIRE_FALSE(graph.Match("a"));
   REQUIRE_FALSE(graph.Match("b"));
   REQUIRE_FALSE(graph.Match(""));

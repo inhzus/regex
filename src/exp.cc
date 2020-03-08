@@ -34,6 +34,60 @@ size_t Id::Sym::Order(Id::Sym::_Inner inner) {
   }
 }
 
+namespace es {
+// escape characters
+static const char kNum = 'd', kNumEx = 'D', kWord = 'w', kWordEx = 'W',
+    kWSpace = 's', kWSpaceEx = 'S';
+static const char
+    *kSetEscaped = "-]",
+    *kEscaped = "\\^$.|?*+()[{";
+}  // namespace es
+
+enum class RangeT : char {
+  Char, Exclude, Include
+};
+
+static std::tuple<RangeT, char, CharSet::Group>
+ParseBackSlash(char ch, std::string_view escaped) {
+  RangeT r = RangeT::Include;
+  CharSet::Group group;
+  char val;
+  switch (ch) {
+    case es::kNumEx:
+    case es::kWordEx:
+    case es::kWSpaceEx:r = RangeT::Exclude;
+      break;
+    default: break;
+  }
+  switch (ch) {
+    case es::kNum:
+    case es::kNumEx: {
+      group.Insert('0', '9');
+    }
+    case es::kWord:
+    case es::kWordEx: {
+      group.Insert('0', '9').Insert('a', 'z')
+          .Insert('A', 'Z').Insert('-');
+    }
+    case es::kWSpace:
+    case es::kWSpaceEx: {
+      group.Insert('\t', '\n')  // "\t\n"
+          .Insert('\f', '\r')  // "\f\r"
+          .Insert(' ');
+    }
+    default: {
+      r = RangeT::Char;
+      for (auto p : escaped) {
+        if (ch == p) {
+          val = ch;
+        }
+      }
+      break;
+    }
+  }
+  return std::make_tuple(r, val, std::move(group));
+}
+
 #define FALL_THROUGH do {} while (0)
 Exp Exp::FromStr(const std::string &s) {
   std::vector<Id> vector;
@@ -124,29 +178,40 @@ Exp Exp::FromStr(const std::string &s) {
       }
       case ch::kBrk: {
         Id id(Id::SetId());
+        CharSet &set = id.set->val;
         ++it;
         if (*it == ch::kBrkReverse) {
-          id.sym = Id::Sym(Id::Sym::ExSet);
+          id.sym = Id::Sym(Id::Sym::SetEx);
           ++it;
         }
         if (*it == ch::kBrkRange || *it == ch::kBrkEnd) {
-          id.set->v.push_back(*it);
+          set.pos.Insert(*it);
           ++it;
         }
         for (; it != s.end() && *it != ch::kBrkEnd; ++it) {
-          if (*it != ch::kBrkRange) {
-            id.set->v.push_back(*it);
+          if (*it == ch::kBackslash) {
+            ++it;
+            auto[r, val, group] = ParseBackSlash(*it, es::kSetEscaped);
+            switch (r) {
+              case RangeT::Char:set.pos.Insert(val);
+                break;
+              case RangeT::Include: set.pos.MoveAppend(&group);
+                break;
+              case RangeT::Exclude: set.negs.push_back(std::move(group));
+                break;
+            }
+          } else if (*it != ch::kBrkRange) {
+            set.pos.Insert(*it);
           } else if (char nch = *(it + 1); nch == ch::kBrkEnd) {
-            id.set->v.push_back(ch::kBrkRange);
+            set.pos.Insert(ch::kBrkRange);
           } else {
             char pch = *(it - 1);
             assert(pch <= nch);
-            for (++pch; pch <= nch; ++pch) {
-              id.set->v.push_back(pch);
-            }
+            set.pos.Insert(pch, nch);
             ++it;
           }
         }
+        set.Fold();
         vector.push_back(std::move(id));
         break;
       }
@@ -241,7 +306,15 @@ Exp Exp::FromStr(const std::string &s) {
       case ch::kBackslash: {
         // attention to order of precedence for regex operators
         ++it;
-        FALL_THROUGH;
+        auto[r, val, group] = ParseBackSlash(*it, es::kEscaped);
+        if (r == RangeT::Char) {
+          vector.emplace_back(val);
+        } else {
+          Id id(Id::SetId());
+          if (r == RangeT::Exclude) id.sym = Id::Sym::SetEx;
+          id.set->val.pos.MoveAppend(&group);
+        }
+        break;
       }
       default: {
         vector.emplace_back(*it);
