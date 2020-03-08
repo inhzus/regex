@@ -48,144 +48,7 @@ Edge::~Edge() {
   }
 }
 
-bool Node::WillMatch() const {
-  if (Match == status) return true;
-  std::stack<const Node *, std::vector<const Node *>> stack;
-  auto push_successor = [&stack = stack](const Node *node) {
-    for (const Edge &edge : node->edges) {
-      if (edge.IsEpsilon()) {
-        stack.push(edge.next);
-      }
-    }
-  };
-  push_successor(this);
-  while (!stack.empty()) {
-    const Node *node = stack.top();
-    stack.pop();
-    if (Match == node->status) return true;
-    push_successor(node);
-  }
-  return false;
-}
-
-#define FallThrough do {} while (0)
-Graph Graph::CompilePostfix(const std::string &s) {
-  std::stack<Segment> stack;
-  std::vector<Node *> nodes;
-  for (auto sit = s.begin(); sit != s.end(); ++sit) {
-    char ch = *sit;
-//  for (char ch : s) {
-    bool greedy = true;
-    switch (ch) {
-      case ch::kMore:
-      case ch::kPlus:
-      case ch::kQuest: {
-        // lazy mode: *?, +?, ??
-        auto next(sit + 1);
-        if (next != s.end() && *next == ch::kQuest) {
-          ++sit;
-          greedy = false;
-        }
-        break;
-      }
-      default: break;
-    }
-    switch (ch) {
-      case ch::kConcat: {
-        //      | left | right |
-        // start=0==>0-->0==>end=0
-        Segment back(stack.top());
-        stack.pop();
-        Segment &front(stack.top());
-        front.end->edges.push_back(Edge::EpsilonEdge(back.start));
-        front.end = back.end;
-        break;
-      }
-      case ch::kEither: {
-        //       |   left    |
-        //       |-->0==>0-->|
-        // start=0       end=0
-        //       |-->0==>0-->|
-        //       |   right   |
-        Segment right(stack.top());
-        stack.pop();
-        Segment left(stack.top());
-        stack.pop();
-        auto start = new Node(
-            Edge::EpsilonEdge(left.start),
-            Edge::EpsilonEdge(right.start));
-        nodes.push_back(start);
-        auto end = new Node;
-        nodes.push_back(end);
-        left.end->edges.push_back(Edge::EpsilonEdge(end));
-        right.end->edges.push_back(Edge::EpsilonEdge(end));
-        stack.push(Segment(start, end));
-        break;
-      }
-      case ch::kMore: {
-        //       |-->0==>0-->|
-        // start=0<--.<--.<--|   |-->end=0
-        //       |-->.-->.-->.-->|
-        Segment elem(stack.top());
-        stack.pop();
-        auto end = new Node;
-        nodes.push_back(end);
-        Node *start;
-        if (greedy) {
-          start = new Node(Edge::EpsilonEdge(elem.start),
-                           Edge::EpsilonEdge(end));
-        } else {
-          start = new Node(Edge::EpsilonEdge(end),
-                           Edge::EpsilonEdge(elem.start));
-        }
-        nodes.push_back(start);
-        elem.end->edges.push_back(Edge::EpsilonEdge(start));
-        stack.push(Segment(start, end));
-        break;
-      }
-      case ch::kPlus: {
-        break;
-      }
-      case ch::kQuest: {
-        //       |   elem    |
-        //       |-->0==>0-->|
-        // start=0       end=0
-        //       |-->.-->.-->|
-        Segment elem(stack.top());
-        stack.pop();
-        auto end = new Node;
-        nodes.push_back(end);
-        std::vector<Edge> edges;
-        Node *start;
-        if (greedy) {
-          start = new Node(Edge::EpsilonEdge(elem.start),
-                           Edge::EpsilonEdge(end));
-        } else {
-          start = new Node(Edge::EpsilonEdge(end),
-                           Edge::EpsilonEdge(elem.start));
-        }
-        nodes.push_back(start);
-        elem.end->edges.push_back(Edge::EpsilonEdge(end));
-        stack.push(Segment(start, end));
-        break;
-      }
-      default: {
-        // start=0-->ch=0-->end=0
-        auto start = new Node;
-        nodes.push_back(start);
-        auto end = new Node;
-        nodes.push_back(end);
-        start->edges.push_back(Edge::CharEdge(end, ch));
-        stack.push(Segment(start, end));
-        break;
-      }
-    }
-  }
-  assert(stack.size() == 1);
-  Segment &seg(stack.top());
-  seg.end->status = Node::Match;
-  return Graph(1, seg, std::move(nodes), {});
-}
+#define FallThrough do {} while (false)
 Graph Graph::Compile(const std::string &s) {
   return Compile(Exp::FromStr(s));
 }
@@ -207,7 +70,7 @@ Graph Graph::Compile(Exp &&exp) {
         Segment seg(stack.top());
         stack.pop();
         seg.end->status = Node::Match;
-        auto *sub_graph = new Graph(exp.group_num, seg, {}, exp.named_group);
+        auto *sub_graph = new Graph(exp.group_num, seg, {}, {});
         auto end = new Node;
         nodes.push_back(end);
         Node *start;

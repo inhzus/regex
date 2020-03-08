@@ -10,52 +10,6 @@
 
 #include "test/utils.h"
 
-TEST_CASE("graph match concat", "[graph]") {
-  auto graph = regex::Graph::CompilePostfix("aa.");
-  REQUIRE(2 == graph.MatchLen("aa"));
-  REQUIRE(2 == graph.MatchLen("aaa"));
-  REQUIRE(-1 == graph.MatchLen("a"));
-  REQUIRE(-1 == graph.MatchLen("b"));
-  REQUIRE(-1 == graph.MatchLen(""));
-}
-
-TEST_CASE("graph match 0 or more", "[graph]") {
-  auto graph = regex::Graph::CompilePostfix("aa*.");
-  REQUIRE(-1 == graph.MatchLen(""));
-  REQUIRE(-1 == graph.MatchLen("b"));
-  REQUIRE(1 == graph.MatchLen("a"));
-  REQUIRE(2 == graph.MatchLen("aa"));
-  REQUIRE(2 == graph.MatchLen("aab"));
-
-  graph = regex::Graph::CompilePostfix("ab|*a.");
-  REQUIRE(4 == graph.MatchLen("babac"));
-}
-
-TEST_CASE("graph match either one", "[graph]") {
-  auto graph = regex::Graph::CompilePostfix("ba*|");
-  REQUIRE(1 == graph.MatchLen("a"));
-  REQUIRE(1 == graph.MatchLen("b"));
-}
-
-TEST_CASE("graph match the element or not", "[graph]") {
-  auto graph = regex::Graph::CompilePostfix("a?b.");
-  REQUIRE(2 == graph.MatchLen("ab"));
-  REQUIRE(1 == graph.MatchLen("b"));
-  REQUIRE(-1 == graph.MatchLen("a"));
-}
-
-TEST_CASE("graph greedy or lazy", "[graph]") {
-  auto graph = regex::Graph::CompilePostfix("aa*?.");
-  REQUIRE(1 == graph.MatchLen("a"));
-  REQUIRE(1 == graph.MatchLen("aa"));
-
-  graph = regex::Graph::CompilePostfix("ab|*?a.");
-  REQUIRE(2 == graph.MatchLen("babac"));
-
-  graph = regex::Graph::CompilePostfix("aa??.");
-  REQUIRE(1 == graph.MatchLen("aa"));
-}
-
 inline regex::Graph
 CompileInfix(const std::string &infix, const std::string &postfix) {
   auto exp = regex::Exp::FromStr(infix);
@@ -63,15 +17,17 @@ CompileInfix(const std::string &infix, const std::string &postfix) {
   return regex::Graph::Compile(std::move(exp));
 }
 
-TEST_CASE("graph of infix order", "[graph]") {
+TEST_CASE("graph match concat") {
   auto graph = CompileInfix("aa", "aa.");
   REQUIRE(2 == graph.MatchLen("aa"));
   REQUIRE(2 == graph.MatchLen("aaa"));
   REQUIRE(-1 == graph.MatchLen("a"));
   REQUIRE(-1 == graph.MatchLen("b"));
   REQUIRE(-1 == graph.MatchLen(""));
+}
 
-  graph = CompileInfix("aa*", "aa*.");
+TEST_CASE("graph match 0 or more") {
+  auto graph = CompileInfix("aa*", "aa*.");
   REQUIRE(-1 == graph.MatchLen(""));
   REQUIRE(-1 == graph.MatchLen("b"));
   REQUIRE(1 == graph.MatchLen("a"));
@@ -80,17 +36,23 @@ TEST_CASE("graph of infix order", "[graph]") {
 
   graph = CompileInfix("(a|b)*a", "ab|(*a.");
   REQUIRE(4 == graph.MatchLen("babac"));
+}
 
-  graph = CompileInfix("b|a*", "ba*|");
+TEST_CASE("graph match either one") {
+  auto graph = CompileInfix("b|a*", "ba*|");
   REQUIRE(1 == graph.MatchLen("a"));
   REQUIRE(1 == graph.MatchLen("b"));
+}
 
-  graph = CompileInfix("a?b", "a?b.");
+TEST_CASE("graph match the element or not") {
+  auto graph = CompileInfix("a?b", "a?b.");
   REQUIRE(2 == graph.MatchLen("ab"));
   REQUIRE(1 == graph.MatchLen("b"));
   REQUIRE(-1 == graph.MatchLen("a"));
+}
 
-  graph = CompileInfix("aa*?", "aa*?.");
+TEST_CASE("graph greedy or lazy") {
+  auto graph = CompileInfix("aa*?", "aa*?.");
   REQUIRE(1 == graph.MatchLen("a"));
   REQUIRE(1 == graph.MatchLen("aa"));
 
@@ -106,7 +68,7 @@ TEST_CASE("graph of infix order", "[graph]") {
   REQUIRE(2 == graph.MatchLen("bh"));
 }
 
-TEST_CASE("graph match any and backslash", "[graph]") {
+TEST_CASE("graph match any and backslash") {
   auto graph = CompileInfix(".*a", "_*a.");
   REQUIRE(15 == graph.MatchLen("abcdefghijklmna"));
   graph = CompileInfix("a.?b", "a_?b..");
@@ -120,7 +82,7 @@ TEST_CASE("graph match any and backslash", "[graph]") {
   REQUIRE(2 == graph.MatchLen("()"));
 }
 
-TEST_CASE("graph match function that supports break backtrack", "[graph]") {
+TEST_CASE("graph match function that supports break backtrack") {
   auto graph = CompileInfix("ab", "ab.");
   REQUIRE(2 == graph.MatchLen("ab"));
 
@@ -133,7 +95,7 @@ TEST_CASE("graph match function that supports break backtrack", "[graph]") {
   REQUIRE(2 == graph.MatchLen("bh"));
 }
 
-TEST_CASE("graph match groups", "[graph]") {
+TEST_CASE("graph match groups") {
   auto graph = CompileInfix("aa*|b(cd*(e|fg))?h|i", "aa*.bcd*efg.|(..(?h..|i|");
 
   std::vector<std::string> groups;
@@ -144,7 +106,7 @@ TEST_CASE("graph match groups", "[graph]") {
   REQUIRE("fg" == groups[2]);
 }
 
-TEST_CASE("graph match non-captured groups", "[graph]") {
+TEST_CASE("graph match non-captured groups") {
   auto graph = CompileInfix(
       "aa*|b(?:cd*(?:e|fg))?h|i", "aa*.bcd*efg.|..?h..|i|");
 
@@ -157,7 +119,7 @@ TEST_CASE("graph match non-captured groups", "[graph]") {
   REQUIRE("bcdddfgh" == groups[0]);
 }
 
-TEST_CASE("graph look-ahead", "[graph]") {
+TEST_CASE("graph look-ahead") {
   auto graph = CompileInfix("a(?=b)(b|c)", "ab(=bc|(..");
 
   std::vector<std::string> groups;
@@ -173,6 +135,9 @@ TEST_CASE("graph look-ahead", "[graph]") {
 
   REQUIRE_FALSE(graph.MatchGroups("ac", &groups));
 
+  graph = CompileInfix("a(?=(?P<ahead>foo|bar))", "afoo..bar..|(<>(=.");
+  REQUIRE(graph.Match("abar").Group("ahead") == "bar");
+
   graph = CompileInfix("a(?!(b))(b|c)", "ab((!bc|(..");
   REQUIRE(graph.MatchGroups("ac", &groups));
   REQUIRE("ac" == groups[0]);
@@ -182,7 +147,7 @@ TEST_CASE("graph look-ahead", "[graph]") {
   REQUIRE_FALSE(graph.MatchGroups("ab", &groups));
 }
 
-TEST_CASE("graph possessive quantifiers", "[graph]") {
+TEST_CASE("graph possessive quantifiers") {
   auto graph = CompileInfix(".*+b", "_*+b.");
 //  graph.DrawMermaid();
   REQUIRE_FALSE(graph.MatchGroups("b", nullptr));
@@ -198,7 +163,7 @@ TEST_CASE("graph possessive quantifiers", "[graph]") {
   REQUIRE(graph.MatchGroups("aa", nullptr));
 }
 
-TEST_CASE("graph {m,n}", "[graph]") {
+TEST_CASE("graph {m,n}") {
   auto graph = CompileInfix("a{1,5}b", "a{1,5}b.");
   REQUIRE(2 == graph.MatchLen("ab"));
   REQUIRE(6 == graph.MatchLen("aaaaab"));
@@ -226,7 +191,7 @@ TEST_CASE("graph {m,n}", "[graph]") {
   REQUIRE(2 == graph.MatchLen("aaa"));
 }
 
-TEST_CASE("graph back referencing", "[graph]") {
+TEST_CASE("graph back referencing") {
   auto graph = CompileInfix("a(?P<b>b)(?P<c>b|c)", "ab(<>bc|(<>..");
   std::vector<std::string> groups;
   REQUIRE(graph.MatchGroups("abc", &groups));
@@ -244,7 +209,7 @@ TEST_CASE("graph back referencing", "[graph]") {
   REQUIRE(3 == graph.MatchLen("ccd"));
 }
 
-TEST_CASE("graph matcher", "[graph]") {
+TEST_CASE("graph matcher") {
   std::vector<std::string> groups;
   auto graph = CompileInfix("a(?!(b))(b|c)", "ab((!bc|(..");
   REQUIRE(graph.MatchGroups("ac", &groups));
@@ -262,14 +227,14 @@ TEST_CASE("graph matcher", "[graph]") {
   REQUIRE("b" == matcher.Group("a"));
 }
 
-TEST_CASE("graph match atomic group", "[graph]") {
+TEST_CASE("graph match atomic group") {
   auto graph = CompileInfix("(?>aa|a)a", "aa.a|(>a.");
 
   REQUIRE_FALSE(graph.Match("aa").ok());
   REQUIRE(graph.Match("aaa").ok());
 }
 
-TEST_CASE("graph match character set", "[graph]") {
+TEST_CASE("graph match character set") {
   auto graph = CompileInfix("[ab]", "[1]");
   REQUIRE(graph.Match("a").ok());
   REQUIRE(graph.Match("b").ok());
