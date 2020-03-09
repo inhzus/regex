@@ -199,7 +199,6 @@ class Matcher {
 
 class Graph {
  public:
-  static Graph CompilePostfix(const std::string &s);
   static Graph Compile(const std::string &s);
   static Graph Compile(Exp &&exp);
 

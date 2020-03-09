@@ -53,6 +53,7 @@ struct CharSet {
       return *this;
     }
     void Fold() {
+      if (ranges.size() <= 1) return;
       std::sort(ranges.begin(), ranges.end());
       std::vector<Range> result;
       auto it = ranges.begin(), cur = it++;

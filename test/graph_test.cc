@@ -264,3 +264,29 @@ TEST_CASE("graph match character set") {
   REQUIRE_FALSE(graph.Match(""));
   REQUIRE(graph.Match("c"));
 }
+
+TEST_CASE("graph match shorthand character class") {
+#define CHECK_SHORTHAND_RANGE(out_of_range)  \
+  {  \
+    char ch = '\0';  \
+    do {  \
+      REQUIRE((graph.Match(std::string(1, ch)) || (out_of_range)));  \
+    } while (++ch != '\0');  \
+  }
+  auto graph = CompileInfix("[\\d]", "[1]");
+  CHECK_SHORTHAND_RANGE(ch < '0' || ch > '9');
+  graph = CompileInfix("[\\D]", "[1]");
+  CHECK_SHORTHAND_RANGE(ch >= '0' && ch <= '9');
+  graph = CompileInfix("[\\s]", "[3]");  // [ \t\r\n\f]
+  CHECK_SHORTHAND_RANGE(ch != ' ' && ch != '\t' &&
+      ch != '\r' && ch != '\n' && ch != '\f');
+  graph = CompileInfix("[\\S]", "[1]");
+  CHECK_SHORTHAND_RANGE(ch == ' ' || ch == '\t' ||
+      ch == '\r' || ch == '\n' || ch == '\f');
+  graph = CompileInfix("[\\w]", "[4]");  // [A-Za-z0-9_]
+  CHECK_SHORTHAND_RANGE((ch < 'A' || ch > 'Z') &&
+      (ch < 'a' || ch > 'z') && (ch < '0' || ch > '9') && ch != '_');
+  graph = CompileInfix("[\\W]", "[1]");
+  CHECK_SHORTHAND_RANGE((ch >= 'A' && ch <= 'Z') ||
+      (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_');
+}

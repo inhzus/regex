@@ -73,7 +73,7 @@ ParseBackSlash(char ch, std::string_view escaped) {
     case es::kWord:
     case es::kWordEx: {
       group.Insert('0', '9').Insert('a', 'z')
-          .Insert('A', 'Z').Insert('-');
+          .Insert('A', 'Z').Insert('_');
       break;
     }
     case es::kWSpace:
