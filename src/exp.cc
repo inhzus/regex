@@ -153,6 +153,10 @@ Exp Exp::FromStr(const std::string &s) {
         vector.emplace_back(Id::Sym::Any);
         break;
       }
+      case ch::kBegin: {
+        vector.emplace_back(Id::Sym::Begin);
+        break;
+      }
       case ch::kBrace: {
         size_t lower_bound = 0, upper_bound = 0;
         for (++it; *it != ch::kBraceSplit && *it != ch::kBraceEnd; ++it) {
@@ -224,6 +228,10 @@ Exp Exp::FromStr(const std::string &s) {
       }
       case ch::kEither: {
         push_operator(Id(Id::Sym::Either));
+        break;
+      }
+      case ch::kEnd: {
+        vector.emplace_back(Id::Sym::End);
         break;
       }
       case ch::kParen: {

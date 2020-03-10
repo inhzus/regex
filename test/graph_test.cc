@@ -290,3 +290,9 @@ TEST_CASE("graph match shorthand character class") {
   CHECK_SHORTHAND_RANGE((ch >= 'A' && ch <= 'Z') ||
       (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_');
 }
+
+TEST_CASE("graph match end of the string") {
+  auto graph = CompileInfix("a$", "a$.");
+  REQUIRE(graph.Match("a"));
+  REQUIRE_FALSE(graph.Match("aa"));
+}

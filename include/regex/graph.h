@@ -21,8 +21,26 @@ class Graph;
 
 struct Edge {
   enum Type {
-    Empty, Ahead, NegAhead, Any, Brake, Char, Epsilon, Func, Lower, Store,
-    StoreEnd, Named, NamedEnd, Ref, Repeat, Set, SetEx, Upper
+    Empty,
+    Ahead,
+    NegAhead,
+    Any,
+    Begin,
+    Brake,
+    Char,
+    End,
+    Epsilon,
+    Func,
+    Lower,
+    Store,
+    StoreEnd,
+    Named,
+    NamedEnd,
+    Ref,
+    Repeat,
+    Set,
+    SetEx,
+    Upper
   };
 
   static Edge AheadEdge(Node *next, Graph *graph) {
@@ -37,11 +55,15 @@ struct Edge {
   static Edge AnyEdge(Node *next) {
     return Edge(Any, next);
   }
-  static Edge EpsilonEdge(Node *next) {
-    return Edge(Epsilon, next);
+  static Edge BeginEdge(Node *next) {
+    return Edge(Begin, next);
   }
   static Edge BrakeEdge(Node *next, bool *pass) {
     return Edge(Brake, next, pass);
+  }
+  static Edge EndEdge(Node *next) { return Edge(End, next); }
+  static Edge EpsilonEdge(Node *next) {
+    return Edge(Epsilon, next);
   }
   static Edge FuncEdge(Node *next, std::function<void()> *f) {
     return Edge(Func, next, f);

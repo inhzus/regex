@@ -19,6 +19,8 @@ std::string IdsToStr(const std::vector<Id> &vector) {
         break;
       case Id::Sym::Any: s.push_back('_');
         break;
+      case Id::Sym::Begin: s.push_back('^');
+        break;
       case Id::Sym::AtomicPr: s += "(>";
         break;
       case Id::Sym::Char: s.push_back(id.ch);
@@ -26,6 +28,8 @@ std::string IdsToStr(const std::vector<Id> &vector) {
       case Id::Sym::Concat: s.push_back('.');
         break;
       case Id::Sym::Either: s.push_back('|');
+        break;
+      case Id::Sym::End: s.push_back('$');
         break;
       case Id::Sym::More: s.push_back('*');
         break;

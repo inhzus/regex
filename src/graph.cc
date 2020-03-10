@@ -109,6 +109,14 @@ Graph Graph::Compile(Exp &&exp) {
         stack.push(Segment(start, end));
         break;
       }
+      case Id::Sym::Begin: {
+        auto end = new Node;
+        nodes.push_back(end);
+        auto start = new Node(Edge::BeginEdge(end));
+        nodes.push_back(start);
+        stack.push(Segment(start, end));
+        break;
+      }
       case Id::Sym::Char: {
         // start=0-->ch=0-->end=0
         auto end = new Node;
@@ -148,6 +156,14 @@ Graph Graph::Compile(Exp &&exp) {
         stack.push(Segment(start, end));
         break;
       }
+      case Id::Sym::End: {
+        auto end = new Node;
+        nodes.push_back(end);
+        auto start = new Node(Edge::EndEdge(end));
+        nodes.push_back(start);
+        stack.push(Segment(start, end));
+        break;
+      }
       case Id::Sym::More:
       case Id::Sym::PosMore:
       case Id::Sym::RelMore: {
@@ -178,9 +194,9 @@ Graph Graph::Compile(Exp &&exp) {
                 Edge::EpsilonEdge(elem.start),
                 Edge::BrakeEdge(end, new bool));
             nodes.push_back(loop);
-            start = new Node(
-                Edge::FuncEdge(loop, new std::function<void()>{
-                    [b = loop->edges[1].brake.pass]() { *b = true; }}));
+            start = new Node(Edge::FuncEdge(
+                loop, new std::function<void()>{
+                          [b = loop->edges[1].brake.pass]() { *b = true; }}));
           }
         }
         nodes.push_back(start);
@@ -452,6 +468,12 @@ void Graph::Match(const std::string &s, Matcher *matcher) const {
         case Edge::Epsilon: {
           break;
         }
+        case Edge::Begin: {
+          if (cur.it != s.begin()) {
+            backtrack = true;
+          }
+          break;
+        }
         case Edge::Brake: {
           if (*edge.brake.pass) {
             *edge.brake.pass = false;
@@ -466,6 +488,12 @@ void Graph::Match(const std::string &s, Matcher *matcher) const {
             break;
           }
           ++cur.it;
+          break;
+        }
+        case Edge::End: {
+          if (cur.it != s.end()) {
+            backtrack = true;
+          }
           break;
         }
         case Edge::Func: {
@@ -602,9 +630,13 @@ void Graph::DrawMermaid() const {
           break;
         case Edge::Any: s = "any";
           break;
+        case Edge::Begin: s = "begin";
+          break;
         case Edge::Brake: s = "brake";
           break;
         case Edge::Char: s = "char: " + std::string(1, edge.ch.val);
+          break;
+        case Edge::End: s = "end";
           break;
         case Edge::Func: s = "func";
           break;

@@ -13,6 +13,8 @@
 - [x] {m, n}
 - [x] named group & back-reference: (?P\<name\>...), (?P=name) 
 - [x] atomic group: (?>...)
-- [ ] character range
+- [x] character range
+- [ ] "^", "$"
+- [ ] "+", "+?", "++"
 - [ ] bytecode virtual machine
 

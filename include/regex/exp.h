@@ -16,13 +16,16 @@ namespace regex {
 
 namespace ch {
 static constexpr const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
-    kAtomicFlag = '>', kBackslash = '\\', kBrace = '{', kBraceEnd = '}',
-    kBraceSplit = ',', kBrk = '[', kBrkEnd = ']', kBrkRange = '-',
-    kBrkReverse = '^', kConcat = '.', kEither = '|', kMore = '*',
-    kNamedFlag = 'P', kNEqualFlag = '=', kNLeftFlag = '<', kNRightFlag = '>',
-    kParen = '(', kParenEnd = ')', kParenFLag = '?', kPlus = '+', kQuest = '?',
-    kUnParenFlag = ':';
-};
+                            kAtomicFlag = '>', kBackslash = '\\', kBegin = '^',
+                            kBrace = '{', kBraceEnd = '}', kBraceSplit = ',',
+                            kBrk = '[', kBrkEnd = ']', kBrkRange = '-',
+                            kBrkReverse = '^', kConcat = '.', kEither = '|',
+                            kEnd = '$', kMore = '*', kNamedFlag = 'P',
+                            kNEqualFlag = '=', kNLeftFlag = '<',
+                            kNRightFlag = '>', kParen = '(', kParenEnd = ')',
+                            kParenFLag = '?', kPlus = '+', kQuest = '?',
+                            kUnParenFlag = ':';
+};  // namespace ch
 
 // character classes
 struct CharSet {
@@ -107,9 +110,11 @@ struct Id {
       AheadPr, NegAheadPr,  // "(?=", "(?!"
       Any,  // "."
       AtomicPr,  // "(?>...)"
+      Begin,  // "^"
       Char,  // a character
       Concat,  // concatenate characters
       Either,  // "|"
+      End,  // "$"
       More, RelMore, PosMore,  // "*", "*+", "*?"
       NamedPr,  // "(?P<name>...)"
       Paren, ParenEnd,  // "(", ")"
