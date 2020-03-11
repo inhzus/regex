@@ -96,12 +96,12 @@ ParseBackSlash(char ch, std::string_view escaped) {
 }
 
 #define FALL_THROUGH do {} while (0)
-Exp Exp::FromStr(const std::string &s) {
+Exp Exp::FromStr(std::string_view s) {
   std::vector<Id> vector;
-  std::string::const_iterator it(s.begin());
+  auto it(s.begin());
   std::stack<Id, std::vector<Id>> stack;
   std::stack<bool, std::vector<bool>> concat_stack;
-  std::unordered_map<std::string, size_t> named;
+  std::unordered_map<std::string_view, size_t> named;
   concat_stack.push(false);
   size_t store_idx = 1;
   auto push_operator = [&vector = vector, &stack = stack](Id &&id) {
@@ -261,14 +261,14 @@ Exp Exp::FromStr(const std::string &s) {
           case ch::kNamedFlag: {
             ++flag;  // *flag == '<' or '='
             if (*flag == ch::kNLeftFlag) {
-              std::string::const_iterator left = ++flag;
+              auto left = ++flag;
               for (; *flag != ch::kNRightFlag; ++flag) {}
-              named[std::string(left, flag)] = store_idx;
+              named[std::string_view(&*left, flag - left)] = store_idx;
               stack.push(Id::NamedId(store_idx++));
             } else if (*flag == ch::kNEqualFlag) {
-              std::string::const_iterator left = ++flag;
+              auto left = ++flag;
               for (; *flag != ch::kParenEnd; ++flag) {}
-              auto find = named.find(std::string(left, flag));
+              auto find = named.find(std::string_view(&*left, flag - left));
               assert(find != named.end());
               stack.push(Id::RefId(find->second));
               --flag;  // step back to the character before ')'

@@ -208,8 +208,7 @@ struct Id {
       default:break;
     }
   }
-
-  Sym sym;
+Sym sym;
   union {
     char ch;
     struct {
@@ -232,11 +231,11 @@ struct Id {
 };
 
 struct Exp {
-  static Exp FromStr(const std::string &s);
+  static Exp FromStr(std::string_view s);
 
   size_t group_num;
   std::vector<Id> ids;
-  std::unordered_map<std::string, size_t> named_group;
+  std::unordered_map<std::string_view, size_t> named_group;
 };
 
 }  // namespace regex

@@ -12,8 +12,6 @@
 
 namespace regex {
 
-const char *Matcher::kEnd = nullptr;
-
 Edge::Edge(Edge &&e) noexcept : type(e.type), next(e.next), bound(e.bound) {
   e.type = Empty;
   e.bound = {};
@@ -49,7 +47,7 @@ Edge::~Edge() {
 }
 
 #define FallThrough do {} while (false)
-Graph Graph::Compile(const std::string &s) {
+Graph Graph::Compile(std::string_view s) {
   return Compile(Exp::FromStr(s));
 }
 Graph Graph::Compile(Exp &&exp) {

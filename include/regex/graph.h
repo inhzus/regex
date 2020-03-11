@@ -193,7 +193,7 @@ class Matcher {
   friend class Graph;
 
   Matcher(size_t group_num,
-          std::unordered_map<std::string, size_t> named_group) :
+          std::unordered_map<std::string_view, size_t> named_group) :
       ok_(false), groups_(group_num, std::string()),
       named_groups_(std::move(named_group)) {}
   explicit operator bool() const { return ok_; }
@@ -201,7 +201,7 @@ class Matcher {
   [[nodiscard]] std::string_view
   Group(size_t idx) const { return groups_[idx]; }
   [[nodiscard]] std::string_view
-  Group(const std::string &key) const {
+  Group(std::string_view key) const {
     auto pair_it = named_groups_.find(key);
     if (pair_it == named_groups_.end()) return kEnd;
     return groups_[pair_it->second];
@@ -211,17 +211,17 @@ class Matcher {
   [[nodiscard]] const std::vector<std::string> &
   groups() const { return groups_; }
 
-  static const char *kEnd;
+  inline static const char *kEnd = "";
 
  private:
   bool ok_;
   std::vector<std::string> groups_;
-  std::unordered_map<std::string, size_t> named_groups_;
+  std::unordered_map<std::string_view, size_t> named_groups_;
 };
 
 class Graph {
  public:
-  static Graph Compile(const std::string &s);
+  static Graph Compile(std::string_view s);
   static Graph Compile(Exp &&exp);
 
   Graph(const Graph &) = delete;
@@ -236,7 +236,7 @@ class Graph {
     return *this;
   }
   Graph(size_t group_num, const Segment &seg, std::vector<Node *> &&nodes,
-        std::unordered_map<std::string, size_t> named_group) :
+        std::unordered_map<std::string_view, size_t> named_group) :
       group_num_(group_num), seg_(seg), nodes_(std::move(nodes)),
       named_group_(std::move(named_group)) {}
   ~Graph() { Deallocate(); }
@@ -254,7 +254,7 @@ class Graph {
   size_t group_num_;
   Segment seg_;
   std::vector<Node *> nodes_;
-  std::unordered_map<std::string, size_t> named_group_;
+  std::unordered_map<std::string_view, size_t> named_group_;
 };
 
 }  // namespace regex
