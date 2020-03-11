@@ -231,6 +231,46 @@ Graph Graph::Compile(Exp &&exp) {
       case Id::Sym::UnParen: {
         break;
       }
+      case Id::Sym::Plus:
+      case Id::Sym::PosPlus:
+      case Id::Sym::RelPlus: {
+        // special case as {1,}
+        Segment elem(stack.top());
+        stack.pop();
+        auto end = new Node;
+        nodes.push_back(end);
+        auto repeat = new size_t;
+        auto loop = new Node(Edge::EpsilonEdge(elem.start),
+                             Edge::LowerEdge(end, repeat, 1));
+        nodes.push_back(loop);
+        elem.end->edges.push_back(Edge::RepeatEdge(loop, repeat));
+        auto start = new Node(Edge::FuncEdge(
+            loop, new std::function<void()>({[r = repeat]() { *r = 0; }})));
+        nodes.push_back(start);
+        switch (static_cast<int>(id.sym)) {
+          case Id::Sym::Plus: {
+            break;
+          }
+          case Id::Sym::RelPlus: {
+            std::reverse(loop->edges.begin(), loop->edges.end());
+            break;
+          }
+          case Id::Sym::PosPlus: {
+            auto brake_end = new Node;
+            nodes.push_back(brake_end);
+            end->edges.push_back(Edge::BrakeEdge(brake_end, new bool));
+            start = new Node(Edge::FuncEdge(
+                start,
+                new std::function<void()>(
+                    [b = end->edges.back().brake.pass]() { *b = true; })));
+            nodes.push_back(start);
+            end = brake_end;
+            break;
+          }
+        }
+        stack.push(Segment(start, end));
+        break;
+      }
       case Id::Sym::Quest:
       case Id::Sym::PosQuest:
       case Id::Sym::RelQuest: {
@@ -245,8 +285,8 @@ Graph Graph::Compile(Exp &&exp) {
         Node *start;
         switch (static_cast<int>(id.sym)) {
           case Id::Sym::Quest: {
-            start = new Node(Edge::EpsilonEdge(elem.start),
-                             Edge::EpsilonEdge(end));
+            start =
+                new Node(Edge::EpsilonEdge(elem.start), Edge::EpsilonEdge(end));
             elem.end->edges.push_back(Edge::EpsilonEdge(end));
             break;
           }

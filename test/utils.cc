@@ -44,15 +44,24 @@ std::string IdsToStr(const std::vector<Id> &vector) {
       case Id::Sym::UnParen: break;
       case Id::Sym::ParenEnd: s.push_back(')');
         break;
+      case Id::Sym::Plus:
+        s.push_back('+');
+        break;
+      case Id::Sym::PosPlus:
+        s += "++";
+        break;
+      case Id::Sym::RelPlus:
+        s += "+?";
+        break;
       case Id::Sym::Quest: s.push_back('?');
         break;
       case Id::Sym::PosQuest: s += "?+";
         break;
+      case Id::Sym::RelQuest: s += "??";
+        break;
       case Id::Sym::RefPr: s += "<";
         s += std::to_string(id.ref.idx);
         s += ">";
-        break;
-      case Id::Sym::RelQuest: s += "??";
         break;
       case Id::Sym::Repeat:
       case Id::Sym::PosRepeat:

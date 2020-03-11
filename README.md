@@ -15,6 +15,6 @@
 - [x] atomic group: (?>...)
 - [x] character range
 - [ ] "^", "$"
-- [ ] "+", "+?", "++"
+- [x] "+", "+?", "++"
 - [ ] bytecode virtual machine
 

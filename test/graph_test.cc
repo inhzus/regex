@@ -296,3 +296,23 @@ TEST_CASE("graph match end of the string") {
   REQUIRE(graph.Match("a"));
   REQUIRE_FALSE(graph.Match("aa"));
 }
+
+TEST_CASE("graph match 1 or more") {
+  auto graph = CompileInfix("a+", "a+");
+  REQUIRE_FALSE(graph.Match(""));
+  REQUIRE(graph.Match("a"));
+  REQUIRE(2 == graph.MatchLen("aa"));
+  REQUIRE(2 == graph.MatchLen("aab"));
+  REQUIRE(1 == graph.MatchLen("ab"));
+  REQUIRE_FALSE(graph.Match("b"));
+
+  graph = CompileInfix("a+?", "a+?");
+  REQUIRE(1 == graph.MatchLen("a"));
+  REQUIRE(1 == graph.MatchLen("aa"));
+
+  graph = CompileInfix(".++b", "_++b.");
+  REQUIRE_FALSE(graph.Match("bb"));
+  graph = CompileInfix("a++b", "a++b.");
+  REQUIRE(4 == graph.MatchLen("aaab"));
+}
+

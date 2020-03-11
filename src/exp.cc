@@ -110,6 +110,9 @@ Exp Exp::FromStr(const std::string &s) {
       case Id::Sym::More:
       case Id::Sym::PosMore:
       case Id::Sym::RelMore:
+      case Id::Sym::Plus:
+      case Id::Sym::PosPlus:
+      case Id::Sym::RelPlus:
       case Id::Sym::Quest:
       case Id::Sym::PosQuest:
       case Id::Sym::RelQuest:
@@ -307,6 +310,20 @@ Exp Exp::FromStr(const std::string &s) {
         }
         break;
       }
+      case ch::kPlus: {
+        switch (get_quantifier()) {
+          case Greedy:
+            push_operator(Id(Id::Sym::Plus));
+            break;
+          case Possessive:
+            push_operator(Id(Id::Sym::PosPlus));
+            break;
+          case Reluctant:
+            push_operator(Id(Id::Sym::RelPlus));
+            break;
+        }
+        break;
+      }
       case ch::kQuest: {
         switch (get_quantifier()) {
           case Greedy: push_operator(Id(Id::Sym::Quest));
@@ -357,6 +374,7 @@ Exp Exp::FromStr(const std::string &s) {
         break;
       }
       case ch::kMore:
+      case ch::kPlus:
       case ch::kQuest:
       case ch::kBrace: {
         break;
