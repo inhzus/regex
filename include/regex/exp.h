@@ -8,9 +8,9 @@
 #include <cassert>
 #include <stack>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
-#include <unordered_map>
 
 namespace regex {
 
@@ -42,9 +42,7 @@ struct CharSet {
 
   struct Group {
     Group() : ranges() {}
-    inline Group &Insert(char ch) {
-      return Insert(ch, ch);
-    }
+    inline Group &Insert(char ch) { return Insert(ch, ch); }
     inline Group &Insert(char val, char last) {
       ranges.emplace_back(val, last);
       return *this;
@@ -85,9 +83,7 @@ struct CharSet {
   };
 
   CharSet() : pos(), negs() {}
-  inline void Fold() {
-    pos.Fold();
-  }
+  inline void Fold() { pos.Fold(); }
   [[nodiscard]] bool Contains(char ch) const {
     if (pos.Contains(ch)) return true;
     for (const auto &group : negs) {
@@ -107,23 +103,34 @@ struct Id {
   struct Sym {
    public:
     enum _Inner {
-      AheadPr, NegAheadPr,  // "(?=", "(?!"
-      Any,  // "."
-      AtomicPr,  // "(?>...)"
-      Begin,  // "^"
-      Char,  // a character
-      Concat,  // concatenate characters
-      Either,  // "|"
-      End,  // "$"
-      More, RelMore, PosMore,  // "*", "*+", "*?"
+      AheadPr,
+      NegAheadPr,  // "(?=", "(?!"
+      Any,         // "."
+      AtomicPr,    // "(?>...)"
+      Begin,       // "^"
+      Char,        // a character
+      Concat,      // concatenate characters
+      Either,      // "|"
+      End,         // "$"
+      More,
+      RelMore,
+      PosMore,  // "*", "*+", "*?"
       NamedPr,  // "(?P<name>...)"
-      Paren, ParenEnd,  // "(", ")"
-      UnParen,  // "(?:"
-      Plus, PosPlus, RelPlus,  // "+", "++", "+?"
-      Quest, PosQuest, RelQuest,  // "?", "?+", "??"
-      RefPr,  // "(?P=name)"
-      Repeat, PosRepeat, RelRepeat,  // "{m,n}", "{m,n}+", "{m,n}?"
-      Set, SetEx,  // "[...]", "[^...]"
+      Paren,
+      ParenEnd,  // "(", ")"
+      UnParen,   // "(?:"
+      Plus,
+      PosPlus,
+      RelPlus,  // "+", "++", "+?"
+      Quest,
+      PosQuest,
+      RelQuest,  // "?", "?+", "??"
+      RefPr,     // "(?P=name)"
+      Repeat,
+      PosRepeat,
+      RelRepeat,  // "{m,n}", "{m,n}+", "{m,n}?"
+      Set,
+      SetEx,  // "[...]", "[^...]"
     };
     explicit Sym(Sym::_Inner inner) : inner_(inner), order_(Order(inner)) {}
     Sym &operator=(Sym::_Inner inner) {
@@ -133,9 +140,7 @@ struct Id {
     }
     bool operator==(Sym::_Inner inner) { return inner == inner_; }
     bool operator!=(Sym::_Inner inner) { return inner != inner_; }
-    explicit operator int() const {
-      return static_cast<int>(inner_);
-    }
+    explicit operator int() const { return static_cast<int>(inner_); }
 
     [[nodiscard]] bool IsOperand() const {
       return inner_ == Any || inner_ == Char;
@@ -143,8 +148,8 @@ struct Id {
     [[nodiscard]] bool IsOperator() const { return !IsOperand(); }
     [[nodiscard]] bool IsParen() const {
       return inner_ == Paren || inner_ == UnParen || inner_ == AheadPr ||
-          inner_ == NegAheadPr || inner_ == AtomicPr || inner_ == NamedPr ||
-          inner_ == RefPr;
+             inner_ == NegAheadPr || inner_ == AtomicPr || inner_ == NamedPr ||
+             inner_ == RefPr;
     }
     [[nodiscard]] size_t order() const { return order_; }
 
@@ -155,18 +160,12 @@ struct Id {
     size_t order_;
   };
 
-  inline static Id NamedId(size_t idx) {
-    return Id(Id::Sym::NamedPr, idx);
-  }
-  inline static Id ParenId(size_t idx) {
-    return Id(Id::Sym::Paren, idx);
-  }
+  inline static Id NamedId(size_t idx) { return Id(Id::Sym::NamedPr, idx); }
+  inline static Id ParenId(size_t idx) { return Id(Id::Sym::Paren, idx); }
   inline static Id RepeatId(Sym::_Inner sym, size_t lower, size_t upper) {
     return Id(sym, lower, upper);
   }
-  inline static Id RefId(size_t idx) {
-    return Id(Id::Sym::RefPr, idx);
-  }
+  inline static Id RefId(size_t idx) { return Id(Id::Sym::RefPr, idx); }
   inline static Id SetId() {
     Id id(Sym::Set);
     id.set = new std::remove_reference_t<decltype(*id.set)>{CharSet()};
@@ -184,10 +183,10 @@ struct Id {
             {id.repeat->lower, id.repeat->upper});
         break;
       case Sym::Set:
-        set = new std::remove_reference_t<
-            decltype(*set)>({id.set->val});
+        set = new std::remove_reference_t<decltype(*set)>({id.set->val});
         break;
-      default:store = id.store;
+      default:
+        store = id.store;
         break;
     }
   }
@@ -200,15 +199,18 @@ struct Id {
     switch (static_cast<int>(sym)) {
       case Sym::Repeat:
       case Sym::RelRepeat:
-      case Sym::PosRepeat: delete repeat;
+      case Sym::PosRepeat:
+        delete repeat;
         break;
       case Sym::Set:
-      case Sym::SetEx: delete set;
+      case Sym::SetEx:
+        delete set;
         break;
-      default:break;
+      default:
+        break;
     }
   }
-Sym sym;
+  Sym sym;
   union {
     char ch;
     struct {
@@ -217,10 +219,10 @@ Sym sym;
     struct {
       size_t lower;
       size_t upper;
-    } *repeat;
+    } * repeat;
     struct {
       CharSet val;
-    } *set;
+    } * set;
   };
 
  private:

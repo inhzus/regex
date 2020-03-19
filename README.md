@@ -1,5 +1,9 @@
 **Regex** is a regular expression engine library.
 
+## Usage
+
+Example usage: [main.cc](https://github.com/inhzus/regex/blob/master/example/main.cc)
+
 ## Todo
 
 - [x] epsilon-NFA graph
@@ -14,7 +18,7 @@
 - [x] named group & back-reference: (?P\<name\>...), (?P=name) 
 - [x] atomic group: (?>...)
 - [x] character range
-- [ ] "^", "$"
+- [x] "^", "$"
 - [x] "+", "+?", "++"
 - [ ] bytecode virtual machine
 

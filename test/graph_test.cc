@@ -327,3 +327,8 @@ TEST_CASE("graph match 1 or more") {
   graph = CompileInfix("a++b", "a++b.");
   REQUIRE(4 == graph.MatchLen("aaab"));
 }
+
+TEST_CASE("graph random test cases") {
+  auto graph = CompileInfix("a(\\w)(?P<name>d|e)(?P=name)", "");
+}
+

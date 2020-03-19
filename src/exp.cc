@@ -345,6 +345,7 @@ Exp Exp::FromStr(std::string_view s) {
           Id id(Id::SetId());
           if (r == RangeT::Exclude) id.sym = Id::Sym::SetEx;
           id.set->val.pos.MoveAppend(&group);
+          vector.push_back(std::move(id));
         }
         break;
       }
