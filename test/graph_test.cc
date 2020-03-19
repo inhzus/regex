@@ -328,7 +328,10 @@ TEST_CASE("graph match 1 or more") {
   REQUIRE(4 == graph.MatchLen("aaab"));
 }
 
-TEST_CASE("graph random test cases") {
-  auto graph = CompileInfix("a(\\w)(?P<name>d|e)(?P=name)", "");
+TEST_CASE("matcher subroutine") {
+  auto graph = CompileInfix("a(b)(?P<foo>cd)", "ab(cd.(<>..");
+  auto matcher = graph.Match("abcd");
+  REQUIRE(matcher.ok());
+  REQUIRE(matcher.Sub("a\\1b\\g<1>c\\g<foo>") == "abbbccd");
 }
 

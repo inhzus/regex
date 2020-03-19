@@ -19,49 +19,63 @@ namespace regex {
 // 8. Alternation |
 size_t Id::Sym::Order(Id::Sym::_Inner inner) {
   switch (inner) {
-//    case Paren:
-//    case ParenEnd:return 4;
-//    case More:
-//    case PosMore:
-//    case RelMore:
-//    case Quest:
-//    case PosQuest:
-//    case RelQuest:
-//    case Repeat: return 5;
-    case Concat:return 6;
-    case Either:return 8;
-    default:return 0;
+      //    case Paren:
+      //    case ParenEnd:return 4;
+      //    case More:
+      //    case PosMore:
+      //    case RelMore:
+      //    case Quest:
+      //    case PosQuest:
+      //    case RelQuest:
+      //    case Repeat: return 5;
+    case Concat:
+      return 6;
+    case Either:
+      return 8;
+    default:
+      return 0;
   }
 }
+
+namespace ch {
+static constexpr const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
+                            kAtomicFlag = '>', kBackslash = '\\', kBegin = '^',
+                            kBrace = '{', kBraceEnd = '}', kBraceSplit = ',',
+                            kBrk = '[', kBrkEnd = ']', kBrkRange = '-',
+                            kBrkReverse = '^', kEither = '|', kEnd = '$',
+                            kMore = '*', kNamedFlag = 'P', kNEqualFlag = '=',
+                            kNLeftFlag = '<', kNRightFlag = '>', kParen = '(',
+                            kParenEnd = ')', kParenFLag = '?', kPlus = '+',
+                            kQuest = '?', kUnParenFlag = ':';
+};  // namespace ch
 
 namespace es {
 // escape characters
 static const char kNum = 'd', kNumEx = 'D', kWord = 'w', kWordEx = 'W',
-    kWSpace = 's', kWSpaceEx = 'S';
-static const char
-    *kSetEscaped = "-]",
-    *kEscaped = "\\^$.|?*+()[{";
+                  kWSpace = 's', kWSpaceEx = 'S';
+static const char *kSetEscaped = "-]", *kEscaped = "\\^$.|?*+()[{";
 }  // namespace es
 
-enum class RangeT : char {
-  Char, Exclude, Include
-};
+enum class RangeT : char { Char, Exclude, Include };
 
-static std::tuple<RangeT, char, CharSet::Group>
-ParseBackSlash(char ch, std::string_view escaped) {
+static std::tuple<RangeT, char, CharSet::Group> ParseBackSlash(
+    char ch, std::string_view escaped) {
   RangeT r;
   CharSet::Group group;
   char val;
   switch (ch) {
     case es::kNum:
     case es::kWord:
-    case es::kWSpace: r = RangeT::Include;
+    case es::kWSpace:
+      r = RangeT::Include;
       break;
     case es::kNumEx:
     case es::kWordEx:
-    case es::kWSpaceEx:r = RangeT::Exclude;
+    case es::kWSpaceEx:
+      r = RangeT::Exclude;
       break;
-    default: r = RangeT::Char;
+    default:
+      r = RangeT::Char;
       break;
   }
   switch (ch) {
@@ -72,13 +86,13 @@ ParseBackSlash(char ch, std::string_view escaped) {
     }
     case es::kWord:
     case es::kWordEx: {
-      group.Insert('0', '9').Insert('a', 'z')
-          .Insert('A', 'Z').Insert('_');
+      group.Insert('0', '9').Insert('a', 'z').Insert('A', 'Z').Insert('_');
       break;
     }
     case es::kWSpace:
     case es::kWSpaceEx: {
-      group.Insert('\t', '\n')  // "\t\n"
+      group
+          .Insert('\t', '\n')  // "\t\n"
           .Insert('\f', '\r')  // "\f\r"
           .Insert(' ');
       break;
@@ -95,7 +109,9 @@ ParseBackSlash(char ch, std::string_view escaped) {
   return std::make_tuple(r, val, std::move(group));
 }
 
-#define FALL_THROUGH do {} while (0)
+#define FALL_THROUGH \
+  do {               \
+  } while (0)
 Exp Exp::FromStr(std::string_view s) {
   std::vector<Id> vector;
   auto it(s.begin());
@@ -119,7 +135,8 @@ Exp Exp::FromStr(std::string_view s) {
       case Id::Sym::Repeat:
       case Id::Sym::PosRepeat:
       case Id::Sym::RelRepeat:
-      case Id::Sym::Set: vector.push_back(std::move(id));
+      case Id::Sym::Set:
+        vector.push_back(std::move(id));
         return;
     }
     while (!stack.empty()) {
@@ -205,13 +222,16 @@ Exp Exp::FromStr(std::string_view s) {
         for (; it != s.end() && *it != ch::kBrkEnd; ++it) {
           if (*it == ch::kBackslash) {
             ++it;
-            auto[r, val, group] = ParseBackSlash(*it, es::kSetEscaped);
+            auto [r, val, group] = ParseBackSlash(*it, es::kSetEscaped);
             switch (r) {
-              case RangeT::Char:set.pos.Insert(val);
+              case RangeT::Char:
+                set.pos.Insert(val);
                 break;
-              case RangeT::Include: set.pos.MoveAppend(&group);
+              case RangeT::Include:
+                set.pos.MoveAppend(&group);
                 break;
-              case RangeT::Exclude: set.negs.push_back(std::move(group));
+              case RangeT::Exclude:
+                set.negs.push_back(std::move(group));
                 break;
             }
           } else if (*it != ch::kBrkRange) {
@@ -262,12 +282,14 @@ Exp Exp::FromStr(std::string_view s) {
             ++flag;  // *flag == '<' or '='
             if (*flag == ch::kNLeftFlag) {
               auto left = ++flag;
-              for (; *flag != ch::kNRightFlag; ++flag) {}
+              for (; *flag != ch::kNRightFlag; ++flag) {
+              }
               named[std::string_view(&*left, flag - left)] = store_idx;
               stack.push(Id::NamedId(store_idx++));
             } else if (*flag == ch::kNEqualFlag) {
               auto left = ++flag;
-              for (; *flag != ch::kParenEnd; ++flag) {}
+              for (; *flag != ch::kParenEnd; ++flag) {
+              }
               auto find = named.find(std::string_view(&*left, flag - left));
               assert(find != named.end());
               stack.push(Id::RefId(find->second));
@@ -281,7 +303,8 @@ Exp Exp::FromStr(std::string_view s) {
             stack.push(Id(Id::Sym::UnParen));
             break;
           }
-          default: break;
+          default:
+            break;
         }
         it = flag;
         break;
@@ -301,11 +324,14 @@ Exp Exp::FromStr(std::string_view s) {
       }
       case ch::kMore: {
         switch (get_quantifier()) {
-          case Greedy:push_operator(Id(Id::Sym::More));
+          case Greedy:
+            push_operator(Id(Id::Sym::More));
             break;
-          case Possessive: push_operator(Id(Id::Sym::PosMore));
+          case Possessive:
+            push_operator(Id(Id::Sym::PosMore));
             break;
-          case Reluctant: push_operator(Id(Id::Sym::RelMore));
+          case Reluctant:
+            push_operator(Id(Id::Sym::RelMore));
             break;
         }
         break;
@@ -326,11 +352,14 @@ Exp Exp::FromStr(std::string_view s) {
       }
       case ch::kQuest: {
         switch (get_quantifier()) {
-          case Greedy: push_operator(Id(Id::Sym::Quest));
+          case Greedy:
+            push_operator(Id(Id::Sym::Quest));
             break;
-          case Possessive: push_operator(Id(Id::Sym::PosQuest));
+          case Possessive:
+            push_operator(Id(Id::Sym::PosQuest));
             break;
-          case Reluctant: push_operator(Id(Id::Sym::RelQuest));
+          case Reluctant:
+            push_operator(Id(Id::Sym::RelQuest));
             break;
         }
         break;
@@ -338,7 +367,7 @@ Exp Exp::FromStr(std::string_view s) {
       case ch::kBackslash: {
         // attention to order of precedence for regex operators
         ++it;
-        auto[r, val, group] = ParseBackSlash(*it, es::kEscaped);
+        auto [r, val, group] = ParseBackSlash(*it, es::kEscaped);
         if (r == RangeT::Char) {
           vector.emplace_back(val);
         } else {
@@ -365,12 +394,12 @@ Exp Exp::FromStr(std::string_view s) {
       }
       case ch::kParenEnd: {
         concat_stack.pop();
-//        bool group_ignored = stack.top().sym.IsIgnored();
-//        if (concat_stack.top() && !group_ignored) {
+        //        bool group_ignored = stack.top().sym.IsIgnored();
+        //        if (concat_stack.top() && !group_ignored) {
         if (concat_stack.top()) {
           push_operator(Id(Id::Sym::Concat));
         }
-//        if (!group_ignored)
+        //        if (!group_ignored)
         concat_stack.top() = true;
         break;
       }

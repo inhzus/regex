@@ -53,6 +53,51 @@ Edge::~Edge() {
   }
 }
 
+namespace ch {
+static constexpr const char kBackslash = '\\', kGroup = 'g', kAngle = '<',
+                            kAngleEnd = '>';
+}
+
+std::string Matcher::Sub(std::string_view s) const {
+  std::string sub;
+  sub.reserve(s.size());
+  auto it = s.begin();
+  auto append_group = [&it = it, &sub = sub, this]
+    () {
+    size_t idx = 0;
+    for (; *it >= '0' && *it <= '9'; ++it) {
+      idx = idx * 10 + (*it - '0');
+    }
+    assert(idx < groups().size());
+    sub.append(this->Group(idx));
+  };
+  while (it != s.end()) {
+    if (*it != ch::kBackslash) {
+      sub.push_back(*it++);
+      continue;
+    }
+    if (*++it != ch::kGroup) {
+      assert(*it >= '0' && *it <= '9');
+      append_group();
+      continue;
+    }
+    ++it;
+    assert(*it == ch::kAngle);
+    ++it;
+    if (*it >= '0' && *it <= '9') {
+      append_group();
+      assert(*it == ch::kAngleEnd);
+      ++it;
+      continue;
+    }
+    auto left = it;
+    for (; *it != ch::kAngleEnd; ++it) {}
+    sub.append(Group(std::string_view(left, it - left)));
+    ++it;
+  }
+  return sub;
+}
+
 #define FallThrough \
   do {              \
   } while (false)
@@ -657,6 +702,12 @@ Matcher Graph::Match(std::string_view s) const {
   Matcher matcher(s, group_num_, named_group_);
   Match(s, &matcher);
   return matcher;
+}
+
+std::string Graph::Sub(std::string_view sub, std::string_view s) const {
+  auto matcher = Match(s);
+  if (!matcher.ok()) return std::string(sub);
+  return matcher.Sub(sub);
 }
 
 void Graph::DrawMermaid() const {

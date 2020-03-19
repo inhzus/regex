@@ -201,6 +201,7 @@ class Matcher {
     if (pair_it == named_groups_.end()) return kEnd;
     return groups_[pair_it->second];
   }
+  std::string Sub(std::string_view s) const;
 
   [[nodiscard]] bool ok() const { return ok_; }
   [[nodiscard]] const std::vector<std::string_view> &groups() const {
@@ -245,6 +246,7 @@ class Graph {
                                  std::vector<std::string_view> *groups) const;
   void Match(std::string_view s, Matcher *matcher) const;
   Matcher Match(std::string_view s) const;
+  std::string Sub(std::string_view sub, std::string_view s) const;
   void DrawMermaid() const;
 
  private:

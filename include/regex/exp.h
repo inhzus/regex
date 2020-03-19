@@ -14,19 +14,6 @@
 
 namespace regex {
 
-namespace ch {
-static constexpr const char kAheadFlag = '=', kNegAheadFlag = '!', kAny = '.',
-                            kAtomicFlag = '>', kBackslash = '\\', kBegin = '^',
-                            kBrace = '{', kBraceEnd = '}', kBraceSplit = ',',
-                            kBrk = '[', kBrkEnd = ']', kBrkRange = '-',
-                            kBrkReverse = '^', kConcat = '.', kEither = '|',
-                            kEnd = '$', kMore = '*', kNamedFlag = 'P',
-                            kNEqualFlag = '=', kNLeftFlag = '<',
-                            kNRightFlag = '>', kParen = '(', kParenEnd = ')',
-                            kParenFLag = '?', kPlus = '+', kQuest = '?',
-                            kUnParenFlag = ':';
-};  // namespace ch
-
 // character classes
 struct CharSet {
   struct Range {
