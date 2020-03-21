@@ -335,3 +335,13 @@ TEST_CASE("matcher subroutine") {
   REQUIRE(matcher.Sub("a\\1b\\g<1>c\\g<foo>") == "abbbccd");
 }
 
+TEST_CASE("pattern subroutine") {
+  auto graph = CompileInfix("foo", "foo..");
+  REQUIRE(graph.Sub("barr", "afoobcfoodeffoo") == "abarrbcbarrdefbarr");
+  REQUIRE(graph.Sub("foo", "fbarfobar") == "fbarfobar");
+
+  graph = CompileInfix("a(b)(?P<foo>cd)", "ab(cd.(<>..");
+  REQUIRE(graph.Sub("\\1\\g<1>\\g<foo>", "abcdaabcdbcabcd") ==
+          "bbcdabbcdbcbbcd");
+}
+

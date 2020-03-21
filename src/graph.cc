@@ -62,8 +62,7 @@ std::string Matcher::Sub(std::string_view s) const {
   std::string sub;
   sub.reserve(s.size());
   auto it = s.begin();
-  auto append_group = [&it = it, &sub = sub, this]
-    () {
+  auto append_group = [&it = it, &sub = sub, this]() {
     size_t idx = 0;
     for (; *it >= '0' && *it <= '9'; ++it) {
       idx = idx * 10 + (*it - '0');
@@ -91,7 +90,8 @@ std::string Matcher::Sub(std::string_view s) const {
       continue;
     }
     auto left = it;
-    for (; *it != ch::kAngleEnd; ++it) {}
+    for (; *it != ch::kAngleEnd; ++it) {
+    }
     sub.append(Group(std::string_view(left, it - left)));
     ++it;
   }
@@ -705,9 +705,17 @@ Matcher Graph::Match(std::string_view s) const {
 }
 
 std::string Graph::Sub(std::string_view sub, std::string_view s) const {
-  auto matcher = Match(s);
-  if (!matcher.ok()) return std::string(sub);
-  return matcher.Sub(sub);
+  std::string ret;
+  while (true) {
+    auto matcher = Match(s);
+    if (!matcher.ok()) {
+      ret.append(s);
+      return ret;
+    }
+    ret.append(s.substr(0, matcher.BeginIdx()));
+    ret.append(matcher.Sub(sub));
+    s = s.substr(matcher.EndIdx());
+  }
 }
 
 void Graph::DrawMermaid() const {
