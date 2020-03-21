@@ -193,6 +193,7 @@ class Matcher {
   }
   [[nodiscard]] size_t EndIdx() const { return groups_[0].end() - s_.begin(); }
   [[nodiscard]] size_t Size() const { return groups_[0].size(); }
+  [[nodiscard]] std::string_view Str() const { return groups_[0]; }
   [[nodiscard]] std::string_view Group(size_t idx) const {
     return groups_[idx];
   }

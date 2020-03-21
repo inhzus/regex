@@ -2,24 +2,27 @@
 // Copyright [2020] <inhzus>
 //
 
+#include <fmt/format.h>
+
 #include <cstdio>
 
 #include "regex/graph.h"
 
 int main() {
-  auto exp = regex::Exp::FromStr("a(\\w)(?P<name>d|e)(?P=name)");
-  auto pattern = regex::Graph::Compile(std::move(exp));
+  auto pattern = regex::Graph::Compile("a(\\w)(?P<name>d|e)(?P=name)");
   auto match = pattern.Match("ba_dd");
   if (!match) {
-    printf("not match\n");
+    fmt::print("not match\n");
     return 0;
   }
-  printf("match: %.*s\n", static_cast<int>(match.Size()),
-         match.Group(0).data());
-  printf("<1>: %.*s\n", static_cast<int>(match.Group(1).size()),
-         match.Group(1).data());
-  printf("<name>: %.*s\n", static_cast<int>(match.Group("name").size()),
-         match.Group("name").data());
+  fmt::print("match: {}\n", match.Str());           // expected: "a_dd"
+  fmt::print("<1>: {}\n", match.Group(1));          // "_"
+  fmt::print("<name>: {}\n", match.Group("name"));  // "d"
+
+  // subroutine
+  pattern = regex::Graph::Compile("a(b)(?P<c>c)");
+  auto s = pattern.Sub("\\g<c>\\1", "abcdeabc");
+  fmt::print("sub: {}\n", s);  // expected: "cbdecb"
   return 0;
 }
 
