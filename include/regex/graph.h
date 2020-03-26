@@ -34,6 +34,7 @@ struct Edge {
     Lower,
     Store,
     StoreEnd,
+    Match,
     Named,
     NamedEnd,
     Ref,
@@ -70,6 +71,7 @@ struct Edge {
   static Edge StoreEndEdge(Node *next, size_t idx) {
     return Edge(StoreEnd, next, idx);
   }
+  static Edge MatchEdge(Node *next) { return Edge(Match, next); }
   static Edge NamedEdge(Node *next, size_t idx) {
     return Edge(Named, next, idx);
   }
@@ -229,15 +231,15 @@ class Graph {
   Graph &operator=(Graph &&graph) noexcept {
     Deallocate();
     group_num_ = graph.group_num_;
-    seg_ = graph.seg_;
+    start_ = graph.start_;
     nodes_ = std::move(graph.nodes_);
     named_group_ = std::move(graph.named_group_);
     return *this;
   }
-  Graph(size_t group_num, const Segment &seg, std::vector<Node *> &&nodes,
+  Graph(size_t group_num, Node *start, std::vector<Node *> &&nodes,
         std::unordered_map<std::string_view, size_t> named_group)
       : group_num_(group_num),
-        seg_(seg),
+        start_(start),
         nodes_(std::move(nodes)),
         named_group_(std::move(named_group)) {}
   ~Graph() { Deallocate(); }
@@ -254,7 +256,7 @@ class Graph {
   void Deallocate();
 
   size_t group_num_;
-  Segment seg_;
+  Node *start_;
   std::vector<Node *> nodes_;
   std::unordered_map<std::string_view, size_t> named_group_;
 };

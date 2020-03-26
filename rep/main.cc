@@ -1,6 +1,10 @@
 //
 // Copyright [2020] <inhzus>
 //
+// Usage: ... | rep [OPTIONS] PATTERNS
+// Search PATTERNS from STDIN.
+// Example: cat ~/.vimrc | rep \"^set\"
+//
 
 #include <unistd.h>
 
@@ -13,7 +17,7 @@ template <typename T>
 class FixedQueue {
  public:
   FixedQueue(size_t n) : idx_(0), size_(0) { data_.resize(n); }
-  void Push(T &&val) {
+  inline void Push(T &&val) {
     if (data_.empty()) return;
     ++size_;
     if (size_ > data_.size()) {
@@ -21,15 +25,15 @@ class FixedQueue {
     }
     data_[(idx_ + size_) % data_.size()] = std::move(val);
   }
-  T Pop() {
+  inline T Pop() {
     if (size_ < 1) throw;
     T ret(std::move(data_[idx_]));
     idx_ = (idx_ + 1) % data_.size();
     --size_;
     return ret;
   }
-  [[nodiscard]] bool Empty() const { return idx_ == size_; }
-  [[nodiscard]] size_t Size() const { return size_; }
+  [[nodiscard]] inline bool Empty() const { return idx_ == size_; }
+  [[nodiscard]] inline size_t Size() const { return size_; }
 
  private:
   std::vector<T> data_;
@@ -37,14 +41,14 @@ class FixedQueue {
   size_t size_;
 };
 
-void help_msg() {
+inline void help_msg() {
   printf(
       "Usage: ... | rep [OPTIONS] PATTERNS\n"
       "Search PATTERNS from STDIN.\n"
       "Example: cat ~/.vimrc | rep \"^set\"\n");
 }
 
-void error_if(bool condition, const char *msg) {
+inline void error_if(bool condition, const char *msg) {
   if (condition) {
     fprintf(stderr, "rep error: %s\n", msg);
     help_msg();

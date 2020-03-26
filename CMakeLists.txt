@@ -18,3 +18,6 @@ add_subdirectory(test)
 add_subdirectory(example)
 add_subdirectory(rep)
 
+set(LIBRARY_NAME regex)
+set(LIBRARY_FOLDER regex)
+

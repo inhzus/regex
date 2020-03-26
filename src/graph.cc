@@ -120,7 +120,7 @@ Graph Graph::Compile(Exp &&exp) {
         Segment seg(stack.top());
         stack.pop();
         seg.end->status = Node::Match;
-        auto *sub_graph = new Graph(exp.group_num, seg, {}, {});
+        auto *sub_graph = new Graph(exp.group_num, seg.start, {}, {});
         auto end = new Node;
         nodes.push_back(end);
         Node *start;
@@ -469,9 +469,13 @@ Graph Graph::Compile(Exp &&exp) {
   }
   assert(stack.size() == 1);
   Segment &seg(stack.top());
-  seg.end->status = Node::Match;
-  return Graph(exp.group_num, seg, std::move(nodes),
-               std::move(exp.named_group));
+  Node *end = new Node;
+  end->status = Node::Match;
+  seg.end->edges.push_back(Edge::MatchEdge(end));
+  nodes.push_back(end);
+  Graph graph(exp.group_num, seg.start, std::move(nodes),
+              std::move(exp.named_group));
+  return graph;
 }
 
 int Graph::MatchLen(std::string_view s) const {
@@ -502,7 +506,7 @@ void Graph::Match(std::string_view s, Matcher *matcher) const {
       boundary;
   auto start = s.begin();
   do {
-    Pos cur(start, seg_.start, 0);
+    Pos cur(start, start_, 0);
     boundary.assign(group_num_, {cur.it, cur.it});
 
     while (true) {
@@ -595,6 +599,9 @@ void Graph::Match(std::string_view s, Matcher *matcher) const {
             if (*edge.bound->repeat < edge.bound->num) {
               backtrack = true;
             }
+            break;
+          }
+          case Edge::Match: {
             break;
           }
           case Edge::Named: {
@@ -720,9 +727,9 @@ std::string Graph::Sub(std::string_view sub, std::string_view s) const {
 
 void Graph::DrawMermaid() const {
   int id = 0;
-  std::unordered_map<Node *, int> map{{seg_.start, id++}};
+  std::unordered_map<Node *, int> map{{start_, id++}};
   std::stack<Node *> stack;
-  stack.push(seg_.start);
+  stack.push(start_);
   while (!stack.empty()) {
     Node *node = stack.top();
     stack.pop();
@@ -759,6 +766,9 @@ void Graph::DrawMermaid() const {
           break;
         case Edge::Lower:
           s = "lower: " + std::to_string(edge.bound->num);
+          break;
+        case Edge::Match:
+          s = "match";
           break;
         case Edge::Named:
           s = "<" + std::to_string(edge.named.idx);
@@ -802,6 +812,7 @@ void Graph::DrawMermaid() const {
       }
     }
   }
+  printf("\n");
 }
 
 void Graph::Deallocate() {
